@@ -1,4 +1,5 @@
-fn read_elf_calories(calories_data: &str) -> Vec<Vec<u32>> {
+
+pub fn read_elf_calories(calories_data: &str) -> Vec<Vec<u32>> {
     let mut all_data = Vec::new();
 
 
@@ -22,11 +23,11 @@ fn read_elf_calories(calories_data: &str) -> Vec<Vec<u32>> {
     all_data
 }
 
-fn accumulate_per_elf(elf_calories: &Vec<Vec<u32>>) -> Vec<u32> {
+pub fn accumulate_per_elf(elf_calories: &Vec<Vec<u32>>) -> Vec<u32> {
     elf_calories.iter().map(|v| v.iter().sum()).collect()
 }
 
-fn find_most_calories_elf(accumulated_calories: &Vec<u32>) -> usize {
+pub fn find_most_calories_elf(accumulated_calories: &Vec<u32>) -> usize {
     let most_calories_entry = accumulated_calories.iter().enumerate().max_by_key(|e| e.1);
     let most_calories_entry = most_calories_entry.expect("no thicc boy?");
     most_calories_entry.0
@@ -38,7 +39,7 @@ mod test {
 
     #[test]
     fn test_load_aoc2022_data() {
-        let data = include_str!("../res/day1-calories.txt");
+        let data = include_str!("../res/day1-calories_example.txt");
 
         let calorie_data = read_elf_calories(data);
 
@@ -47,7 +48,7 @@ mod test {
 
     #[test]
     fn test_per_elf_data_aoc2022_data() {
-        let data = include_str!("../res/day1-calories.txt");
+        let data = include_str!("../res/day1-calories_example.txt");
         let calorie_data = read_elf_calories(data);
         let accumulated_data = accumulate_per_elf(&calorie_data);
 
@@ -56,7 +57,7 @@ mod test {
 
     #[test]
     fn test_find_most_calories_elf() {
-        let data = include_str!("../res/day1-calories.txt");
+        let data = include_str!("../res/day1-calories_example.txt");
         let calorie_data = read_elf_calories(data);
         let accumulated_data = accumulate_per_elf(&calorie_data);
         let most_calories_elf_idx = find_most_calories_elf(&accumulated_data);

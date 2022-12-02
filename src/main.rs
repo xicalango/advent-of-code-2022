@@ -4,6 +4,17 @@ pub mod day2;
 #[derive(Debug)]
 pub struct Error(String);
 
+fn day1_main() {
+    use day1::*;
+
+    let input_data = include_str!("../res/day1-calories.txt");
+
+    let calorie_data = read_elf_calories(input_data);
+    let accumulated_data = accumulate_per_elf(&calorie_data);
+    let most_calories_elf_idx = find_most_calories_elf(&accumulated_data);
+
+    println!("most calories elf: {}, carries: {}", most_calories_elf_idx+1, accumulated_data[most_calories_elf_idx]);
+}
 
 fn day2_main() {
     use day2::*;
@@ -15,5 +26,6 @@ fn day2_main() {
 }
 
 fn main() {
+    day1_main();
     day2_main();
 }
