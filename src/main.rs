@@ -26,8 +26,11 @@ fn day2_main() {
 
     let input_data = include_str!("../res/day2-guide.txt");
     let guide: StrategyGuide = input_data.parse().unwrap();
+    let basic_game = guide.evaluate_game::<BasicEvaluator>();
+    let advanced_game = guide.evaluate_game::<AdvancedEvaluator>();
 
-    println!("total score: {}", guide.get_score());
+    println!("total score basic: {}", basic_game.get_score());
+    println!("total score advanced: {}", advanced_game.get_score());
 }
 
 fn main() {

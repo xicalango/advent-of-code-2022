@@ -17,7 +17,7 @@ pub enum MyChoice {
     Z,
 }
 
-#[derive(Debug, Eq, PartialEq, Ord)]
+#[derive(Debug, Eq, PartialEq, Ord, Copy, Clone)]
 pub enum RPS {
     Rock,
     Paper,
@@ -38,9 +38,9 @@ impl PartialOrd for RPS {
     }
 }
 
-impl From<OpponentChoice> for RPS {
-    fn from(choice: OpponentChoice) -> Self {
-        match choice {
+impl From<&OpponentChoice> for RPS {
+    fn from(choice: &OpponentChoice) -> Self {
+        match *choice {
             OpponentChoice::A => RPS::Rock,
             OpponentChoice::B => RPS::Paper,
             OpponentChoice::C => RPS::Scissors,
@@ -48,9 +48,9 @@ impl From<OpponentChoice> for RPS {
     }
 }
 
-impl From<MyChoice> for RPS {
-    fn from(choice: MyChoice) -> Self {
-        match choice {
+impl From<&MyChoice> for RPS {
+    fn from(choice: &MyChoice) -> Self {
+        match *choice {
             MyChoice::X => RPS::Rock,
             MyChoice::Y => RPS::Paper,
             MyChoice::Z => RPS::Scissors,
@@ -88,6 +88,42 @@ pub trait Scored {
     fn get_score(&self) -> u32;
 }
 
+pub trait Strategy {
+    fn get_response(&self, opponent_choice: &RPS) -> RPS;
+}
+
+impl RPS {
+    pub fn get_draw_choice(&self) -> RPS {
+        *self
+    }
+
+    pub fn get_losing_choice(&self) -> RPS {
+        match *self {
+            RPS::Rock => RPS::Scissors,
+            RPS::Paper => RPS::Rock,
+            RPS::Scissors => RPS::Paper,
+        }
+    }
+
+    pub fn get_winning_choice(&self) -> RPS {
+        match *self {
+            RPS::Rock => RPS::Paper,
+            RPS::Paper => RPS::Scissors,
+            RPS::Scissors => RPS::Rock,
+        }
+    }
+}
+
+impl Strategy for MyChoice {
+    fn get_response(&self, opponent_choice: &RPS) -> RPS {
+        match *self {
+            MyChoice::X => opponent_choice.get_losing_choice(),
+            MyChoice::Y => opponent_choice.get_draw_choice(),
+            MyChoice::Z => opponent_choice.get_winning_choice(),
+        }
+    }
+}
+
 impl Scored for RPS {
     fn get_score(&self) -> u32 {
         match *self {
@@ -99,7 +135,10 @@ impl Scored for RPS {
 }
 
 #[derive(Debug)]
-pub struct StrategyGuide(Vec<(RPS, RPS)>);
+pub struct StrategyGuide(Vec<(OpponentChoice, MyChoice)>);
+
+#[derive(Debug)]
+pub struct Game(Vec<(RPS, RPS)>);
 
 impl FromStr for StrategyGuide {
     type Err = Error;
@@ -114,7 +153,7 @@ impl FromStr for StrategyGuide {
             let opponent_choice: OpponentChoice = opponent_choice.parse()?;
             let my_choice: MyChoice = my_choice.parse()?;
 
-            result.push( (opponent_choice.into(), my_choice.into()) );
+            result.push( (opponent_choice, my_choice) );
         }
 
         Ok(StrategyGuide(result))
@@ -137,9 +176,47 @@ impl Scored for (RPS, RPS) {
     }
 }
 
-impl Scored for StrategyGuide {
+pub trait Evaluator {
+    fn evaluate_strategy(strategy: &(OpponentChoice, MyChoice)) -> (RPS, RPS);
+}
+
+pub struct BasicEvaluator;
+
+impl Evaluator for BasicEvaluator {
+    fn evaluate_strategy(strategy: &(OpponentChoice, MyChoice)) -> (RPS, RPS) {
+        let (op_choice, my_choice) = strategy;
+        let op_choice: RPS = op_choice.into();
+        let my_choice: RPS = my_choice.into();
+
+        (op_choice, my_choice)
+    }
+}
+
+pub struct AdvancedEvaluator;
+
+impl Evaluator for AdvancedEvaluator {
+    fn evaluate_strategy(strategy: &(OpponentChoice, MyChoice)) -> (RPS, RPS) {
+        let (op_choice, my_choice) = strategy;
+        let op_choice: RPS = op_choice.into();
+
+        let my_choice = my_choice.get_response(&op_choice);
+
+        (op_choice, my_choice)
+    }
+}
+
+
+impl StrategyGuide {
+    pub fn evaluate_game<E: Evaluator>(&self) -> Game {
+        let StrategyGuide(guide) = &self;
+        let game_data = guide.iter().map(|v| E::evaluate_strategy(v)).collect();
+        Game(game_data)
+    }
+}
+
+impl Scored for Game {
     fn get_score(&self) -> u32 {
-        let StrategyGuide(scores) = &self;
+        let Game(scores) = &self;
         scores.iter().map(|v| v.get_score()).sum::<u32>()
     }
 }
@@ -152,7 +229,7 @@ mod test {
     #[test]
     fn test_conversions() {
         let oc: OpponentChoice = "A".parse().unwrap();
-        let rps: RPS = oc.into();
+        let rps: RPS = (&oc).into();
 
         assert_eq!(RPS::Rock, rps);
     }
@@ -173,11 +250,23 @@ mod test {
     }
 
     #[test]
-    fn test_total_score() {
+    fn test_basic_total_score() {
         let guide_source = include_str!("../res/day2-guide_example.txt");
         let guide: StrategyGuide = guide_source.parse().unwrap();
+        let game = guide.evaluate_game::<BasicEvaluator>();
 
-        let total_score = guide.get_score();
+        let total_score = game.get_score();
+
+        println!("total score: {}", total_score);
+    }
+
+    #[test]
+    fn test_advanced_total_score() {
+        let guide_source = include_str!("../res/day2-guide_example.txt");
+        let guide: StrategyGuide = guide_source.parse().unwrap();
+        let game = guide.evaluate_game::<AdvancedEvaluator>();
+
+        let total_score = game.get_score();
 
         println!("total score: {}", total_score);
     }
