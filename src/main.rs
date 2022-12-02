@@ -14,6 +14,11 @@ fn day1_main() {
     let most_calories_elf_idx = find_most_calories_elf(&accumulated_data);
 
     println!("most calories elf: {}, carries: {}", most_calories_elf_idx+1, accumulated_data[most_calories_elf_idx]);
+
+    let top3_elf_idxs = find_topk_calories_elfs(&accumulated_data, 3);
+    let total_calories: u32 = top3_elf_idxs.iter().map(|v| accumulated_data[*v]).sum();
+
+    println!("top3 elf idxs: {:?}, carry: {}", top3_elf_idxs, total_calories);
 }
 
 fn day2_main() {

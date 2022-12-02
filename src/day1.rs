@@ -33,6 +33,12 @@ pub fn find_most_calories_elf(accumulated_calories: &Vec<u32>) -> usize {
     most_calories_entry.0
 }
 
+pub fn find_topk_calories_elfs(accumulated_calories: &Vec<u32>, k: usize) -> Vec<usize> {
+    let mut calories: Vec<(usize, &u32)> = accumulated_calories.iter().enumerate().collect();
+    calories.sort_by_key(|v| v.1);
+    calories.iter().rev().take(k).map(|v| v.0).collect()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -65,6 +71,23 @@ mod test {
         println!("elf number: {} carries {}", most_calories_elf_idx + 1, accumulated_data[most_calories_elf_idx]);
         assert_eq!(3, most_calories_elf_idx);
         assert_eq!(24000, accumulated_data[most_calories_elf_idx]);
+    }
+
+    #[test]
+    fn test_find_topk_calories_elf() {
+        let data = include_str!("../res/day1-calories_example.txt");
+        let calorie_data = read_elf_calories(data);
+        let accumulated_data = accumulate_per_elf(&calorie_data);
+        let top3_calories_idxs = find_topk_calories_elfs(&accumulated_data, 3);
+
+        println!("top3 elfes are: {:?}", top3_calories_idxs);
+
+        let total_calories: u32 = top3_calories_idxs.iter().map(|v| accumulated_data[*v]).sum();
+
+        println!("they carry: {}", total_calories);
+
+        assert_eq!(vec![3, 2, 4], top3_calories_idxs);
+        assert_eq!(45000, total_calories);
     }
 }
 
