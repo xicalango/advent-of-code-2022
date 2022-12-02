@@ -48,16 +48,6 @@ impl From<&OpponentChoice> for RPS {
     }
 }
 
-impl From<&MyChoice> for RPS {
-    fn from(choice: &MyChoice) -> Self {
-        match *choice {
-            MyChoice::X => RPS::Rock,
-            MyChoice::Y => RPS::Paper,
-            MyChoice::Z => RPS::Scissors,
-        }
-    }
-}
-
 impl FromStr for OpponentChoice {
     type Err = Error;
 
@@ -88,10 +78,6 @@ pub trait Scored {
     fn get_score(&self) -> u32;
 }
 
-pub trait Strategy {
-    fn get_response(&self, opponent_choice: &RPS) -> RPS;
-}
-
 impl RPS {
     pub fn get_draw_choice(&self) -> RPS {
         *self
@@ -110,16 +96,6 @@ impl RPS {
             RPS::Rock => RPS::Paper,
             RPS::Paper => RPS::Scissors,
             RPS::Scissors => RPS::Rock,
-        }
-    }
-}
-
-impl Strategy for MyChoice {
-    fn get_response(&self, opponent_choice: &RPS) -> RPS {
-        match *self {
-            MyChoice::X => opponent_choice.get_losing_choice(),
-            MyChoice::Y => opponent_choice.get_draw_choice(),
-            MyChoice::Z => opponent_choice.get_winning_choice(),
         }
     }
 }
@@ -181,25 +157,31 @@ pub trait Evaluator {
 }
 
 pub struct BasicEvaluator;
+pub struct AdvancedEvaluator;
 
 impl Evaluator for BasicEvaluator {
     fn evaluate_strategy(strategy: &(OpponentChoice, MyChoice)) -> (RPS, RPS) {
         let (op_choice, my_choice) = strategy;
         let op_choice: RPS = op_choice.into();
-        let my_choice: RPS = my_choice.into();
+        let my_choice: RPS = match *my_choice {
+            MyChoice::X => RPS::Rock,
+            MyChoice::Y => RPS::Paper,
+            MyChoice::Z => RPS::Scissors,
+        };
 
         (op_choice, my_choice)
     }
 }
 
-pub struct AdvancedEvaluator;
-
 impl Evaluator for AdvancedEvaluator {
     fn evaluate_strategy(strategy: &(OpponentChoice, MyChoice)) -> (RPS, RPS) {
         let (op_choice, my_choice) = strategy;
         let op_choice: RPS = op_choice.into();
-
-        let my_choice = my_choice.get_response(&op_choice);
+        let my_choice = match *my_choice {
+            MyChoice::X => op_choice.get_losing_choice(),
+            MyChoice::Y => op_choice.get_draw_choice(),
+            MyChoice::Z => op_choice.get_winning_choice(),
+        };
 
         (op_choice, my_choice)
     }
@@ -255,6 +237,8 @@ mod test {
         let guide: StrategyGuide = guide_source.parse().unwrap();
         let game = guide.evaluate_game::<BasicEvaluator>();
 
+        println!("basic game: {:#?}", game);
+
         let total_score = game.get_score();
 
         println!("total score: {}", total_score);
@@ -265,6 +249,8 @@ mod test {
         let guide_source = include_str!("../res/day2-guide_example.txt");
         let guide: StrategyGuide = guide_source.parse().unwrap();
         let game = guide.evaluate_game::<AdvancedEvaluator>();
+
+        println!("advanced game: {:#?}", game);
 
         let total_score = game.get_score();
 
