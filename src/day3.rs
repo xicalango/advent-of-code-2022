@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::day2::Scored;
+use crate::Scored;
 
 pub fn find_duplicate(line: &str) -> char {
     assert_eq!(line.len() % 2, 0);

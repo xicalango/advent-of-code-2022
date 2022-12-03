@@ -1,11 +1,13 @@
-use crate::day2::Scored;
-
 pub mod day1;
 pub mod day2;
 pub mod day3;
 
 #[derive(Debug)]
 pub struct Error(String);
+
+pub trait Scored {
+    fn get_score(&self) -> u32;
+}
 
 fn main() {
     println!("day1");

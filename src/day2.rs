@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::str::FromStr;
 
-use crate::Error;
+use crate::{Error, Scored};
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum OpponentChoice {
@@ -72,10 +72,6 @@ impl FromStr for MyChoice {
             _ => Err(Error(format!("invalid choice: {}", s)))
         }
     }
-}
-
-pub trait Scored {
-    fn get_score(&self) -> u32;
 }
 
 impl RPS {
