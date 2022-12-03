@@ -1,8 +1,22 @@
+use crate::day2::Scored;
+
 pub mod day1;
 pub mod day2;
+pub mod day3;
 
 #[derive(Debug)]
 pub struct Error(String);
+
+fn main() {
+    println!("day1");
+    day1_main();
+
+    println!("day2");
+    day2_main();
+
+    println!("day3");
+    day3_main();
+}
 
 fn day1_main() {
     use day1::*;
@@ -33,7 +47,12 @@ fn day2_main() {
     println!("total score advanced: {}", advanced_game.get_score());
 }
 
-fn main() {
-    day1_main();
-    day2_main();
+fn day3_main() {
+    use day3::*;
+
+    let input_data = include_str!("../res/day3-rucksack.txt");
+    let data = Day3Input(input_data);
+    let score = data.get_score();
+    println!("score: {}", score);
 }
+
