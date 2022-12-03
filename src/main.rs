@@ -56,5 +56,8 @@ fn day3_main() {
     let data = Day3Input(input_data);
     let score = data.get_score();
     println!("score: {}", score);
-}
 
+    let chunked_data: Day3Chunked = data.into();
+    let chunked_score = chunked_data.get_score();
+    println!("chunked score: {}", chunked_score);
+}

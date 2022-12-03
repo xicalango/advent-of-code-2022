@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::hash::Hash;
 
 use crate::Scored;
 
@@ -33,6 +34,36 @@ impl Scored for char {
     }
 }
 
+fn chunked_iteration<'a>(lines: &mut impl Iterator<Item = &'a str>) -> Vec<char> {
+
+    let mut result = Vec::new();
+
+    loop {
+        let group: Vec<Option<&str>> = vec![
+            lines.next(),
+            lines.next(),
+            lines.next()
+        ];
+
+        if group.iter().any(Option::is_none) {
+            break;
+        }
+
+        let hashsets: Vec<HashSet<char>> = group.iter()
+            .map(|o| o.unwrap())
+            .map(|l| l.chars().collect::<HashSet<char>>())
+            .collect();
+
+        let intersection1: HashSet<char> = hashsets[0].intersection(&hashsets[1]).map(|v| *v).collect();
+        let intersection2: Vec<&char> = intersection1.intersection(&hashsets[2]).collect();
+
+        assert_eq!(intersection2.len(), 1);
+        result.push(*intersection2[0]);
+    }
+
+    result
+}
+
 #[derive(Debug)]
 pub struct Day3Input(pub &'static str);
 
@@ -42,6 +73,25 @@ impl Scored for Day3Input {
         input.lines()
             .map(str::trim_end)
             .map(find_duplicate)
+            .map(|c| c.get_score())
+            .sum()
+    }
+}
+
+#[derive(Debug)]
+pub struct Day3Chunked(pub &'static str);
+
+impl From<Day3Input> for Day3Chunked {
+    fn from(input: Day3Input) -> Self {
+        let Day3Input(value) = input;
+        Day3Chunked(value)
+    }
+}
+
+impl Scored for Day3Chunked {
+    fn get_score(&self) -> u32 {
+        let Day3Chunked(input) = self;
+        chunked_iteration(&mut input.lines()).iter()
             .map(|c| c.get_score())
             .sum()
     }
@@ -74,6 +124,15 @@ mod test {
         println!("total score: {}", sum);
 
         assert_eq!(sum, 157);
+    }
+
+    #[test]
+    fn test_chunked() {
+        let chunked: Day3Chunked = Day3Input(TEST_DATA).into();
+        let sum = chunked.get_score();
+
+        println!("chunked score: {}", sum);
+        assert_eq!(sum, 70);
     }
 
 }
