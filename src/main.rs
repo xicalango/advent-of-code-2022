@@ -1,6 +1,7 @@
 pub mod day1;
 pub mod day2;
 pub mod day3;
+pub mod day4;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -18,6 +19,9 @@ fn main() {
 
     println!("day3");
     day3_main();
+
+    println!("day4");
+    day4_main();
 }
 
 fn day1_main() {
@@ -60,4 +64,16 @@ fn day3_main() {
     let chunked_data: Day3Chunked = data.into();
     let chunked_score = chunked_data.get_score();
     println!("chunked score: {}", chunked_score);
+}
+
+fn day4_main() {
+    use day4::*;
+
+    let input_data = include_str!("../res/day4-ranges.txt");
+
+    let SectionAssignments(assignments) = input_data.parse().unwrap();
+
+    let work_done_twice_counts = assignments.iter().filter(|a| a.is_work_done_twice()).count();
+
+    println!("work done twice by {} elfes", work_done_twice_counts);
 }
