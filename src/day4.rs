@@ -4,8 +4,6 @@ use crate::Error;
 use std::{ops::RangeInclusive, str::FromStr, num::ParseIntError};
 
 
-
-
 #[derive(Debug)]
 pub struct SectionRange(RangeInclusive<usize>);
 
@@ -28,6 +26,12 @@ impl SectionAssignment {
         let overlap = self.find_overlap();
 
         return &overlap == range1 || &overlap == range2;
+    }
+
+    pub fn has_overlap(&self) -> bool {
+        let overlap = self.find_overlap();
+
+        return overlap.end() >= overlap.start();
     }
 
 }
@@ -74,7 +78,6 @@ impl FromStr for SectionAssignments {
 mod test {
     use super::*;
 
-
     static TEST_INPUT: &'static str = include_str!("../res/day4-ranges_example.txt");
 
     #[test]
@@ -85,12 +88,22 @@ mod test {
     }
 
     #[test]
-    fn test_find_overlaps() {
+    fn test_work_done_twice() {
         let assignments: SectionAssignments = TEST_INPUT.parse().unwrap();
         let SectionAssignments(assignments) = assignments;
         let count = assignments.iter().filter(|a| a.is_work_done_twice()).count();
 
+        println!("twice work times: {}", count);
+    }
+
+    #[test]
+    fn test_overlap() {
+        let assignments: SectionAssignments = TEST_INPUT.parse().unwrap();
+        let SectionAssignments(assignments) = assignments;
+        let count = assignments.iter().filter(|a| a.has_overlap()).count();
+
         println!("overlapping work times: {}", count);
     }
+
 
 }

@@ -76,4 +76,8 @@ fn day4_main() {
     let work_done_twice_counts = assignments.iter().filter(|a| a.is_work_done_twice()).count();
 
     println!("work done twice by {} elfes", work_done_twice_counts);
+
+    let any_overlap_count = assignments.iter().filter(|a| a.has_overlap()).count();
+
+    println!("any overlap count {}", any_overlap_count);
 }
