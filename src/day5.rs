@@ -93,7 +93,7 @@ impl EvalLogic for CrateMover9001 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Stacks<const N: usize>([Vec<char>; N]);
 
 impl<const N: usize> Stacks<N> {

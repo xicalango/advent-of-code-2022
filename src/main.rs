@@ -91,13 +91,17 @@ fn day5_main() {
 
     let input_data = include_str!("../res/day5-stacks.txt");
 
-    let mut stacks: Stacks<9> = input_data.parse().unwrap();
+    let stacks: Stacks<9> = input_data.parse().unwrap();
     let instructions: AllInstructions = input_data.parse().unwrap();
+    { 
+        let mut stacks = stacks.clone();
+        instructions.eval::<9, CrateMover9000>(&mut stacks);
+        println!("9000: {}", stacks.top_stacks_str());
+    }
 
-    instructions.eval::<9, CrateMover9000>(&mut stacks);
-    println!("9000: {}", stacks.top_stacks_str());
-
-    let mut stacks: Stacks<9> = input_data.parse().unwrap();
-    instructions.eval::<9, CrateMover9001>(&mut stacks);
-    println!("9001: {}", stacks.top_stacks_str());
+    {
+        let mut stacks: Stacks<9> = stacks.clone();
+        instructions.eval::<9, CrateMover9001>(&mut stacks);
+        println!("9001: {}", stacks.top_stacks_str());
+    }
 }
