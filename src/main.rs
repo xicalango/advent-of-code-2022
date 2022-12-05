@@ -2,6 +2,7 @@ pub mod day1;
 pub mod day2;
 pub mod day3;
 pub mod day4;
+pub mod day5;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -22,6 +23,9 @@ fn main() {
 
     println!("day4");
     day4_main();
+
+    println!("day5");
+    day5_main();
 }
 
 fn day1_main() {
@@ -80,4 +84,20 @@ fn day4_main() {
     let any_overlap_count = assignments.iter().filter(|a| a.has_overlap()).count();
 
     println!("any overlap count {}", any_overlap_count);
+}
+
+fn day5_main() {
+    use day5::*;
+
+    let input_data = include_str!("../res/day5-stacks.txt");
+
+    let mut stacks: Stacks<9> = input_data.parse().unwrap();
+    let instructions: AllInstructions = input_data.parse().unwrap();
+
+    instructions.eval::<9, CrateMover9000>(&mut stacks);
+    println!("9000: {}", stacks.top_stacks_str());
+
+    let mut stacks: Stacks<9> = input_data.parse().unwrap();
+    instructions.eval::<9, CrateMover9001>(&mut stacks);
+    println!("9001: {}", stacks.top_stacks_str());
 }
