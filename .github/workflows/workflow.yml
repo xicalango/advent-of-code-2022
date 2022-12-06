@@ -40,7 +40,7 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Run cargo test
+      - name: Run project
         uses: actions-rs/cargo@v1
         with:
           command: run
