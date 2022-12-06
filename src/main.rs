@@ -3,6 +3,7 @@ pub mod day2;
 pub mod day3;
 pub mod day4;
 pub mod day5;
+pub mod day6;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -26,6 +27,9 @@ fn main() {
 
     println!("day5");
     day5_main();
+
+    println!("day6");
+    day6_main();
 }
 
 fn day1_main() {
@@ -104,4 +108,18 @@ fn day5_main() {
         instructions.eval::<9, CrateMover9001>(&mut stacks);
         println!("9001: {}", stacks.top_stacks_str());
     }
+}
+
+fn day6_main() {
+    use day6::*;
+
+    let input_data = include_str!("../res/day6-code.txt");
+
+    let sync_pos = find_sync_start::<4>(input_data);
+
+    println!("sync start: {:?}", sync_pos);
+
+    let msg_pos = find_sync_start::<14>(input_data);
+
+    println!("msg start: {:?}", msg_pos);
 }
