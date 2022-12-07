@@ -1,9 +1,12 @@
+extern crate core;
+
 pub mod day1;
 pub mod day2;
 pub mod day3;
 pub mod day4;
 pub mod day5;
 pub mod day6;
+pub mod day7;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -30,6 +33,9 @@ fn main() {
 
     println!("day6");
     day6_main();
+
+    println!("day7");
+    day7_main();
 }
 
 fn day1_main() {
@@ -122,4 +128,43 @@ fn day6_main() {
     let msg_pos = find_sync_start::<14>(input_data);
 
     println!("msg start: {:?}", msg_pos);
+}
+
+fn day7_main() {
+    use day7::*;
+
+    let input_data = include_str!("../res/day7-bash.txt");
+    let commands: Result<Vec<Command>, Error> = input_data.lines().map(|l| l.trim_end().parse()).collect();
+    let commands = commands.unwrap();
+
+    let mut root = DirEnt::empty_dir("/");
+    {
+        let mut env = Environment::new(&mut root);
+        for cmd in commands {
+            println!("{:?}", cmd);
+            env.eval(&cmd);
+        }
+    }
+
+    let du_by_dir = root.du_by_dir();
+
+    println!("{:#?}", du_by_dir);
+
+    let sum_to_delete: usize = du_by_dir.values().filter(|v| **v <= 100_000).sum();
+
+    println!("sum_to_delete: {}", sum_to_delete);
+
+    let complete_usage = du_by_dir["/"];
+    const DISK_SPACE: usize = 70_000_000;
+    let unused_space = DISK_SPACE - complete_usage;
+
+    const NEEDED_SPACE: usize = 30_000_000;
+    let cleanup_space = NEEDED_SPACE - unused_space;
+
+    let mut dir_sizes: Vec<isize> = du_by_dir.values().map(|f| *f as isize - cleanup_space as isize).collect();
+    dir_sizes.sort();
+
+    let element = dir_sizes.iter().find(|e| e >= &&0);
+
+    println!("found: {:?}", element.unwrap() + cleanup_space as isize);
 }
