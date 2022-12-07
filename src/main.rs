@@ -141,14 +141,11 @@ fn day7_main() {
     {
         let mut env = Environment::new(&mut root);
         for cmd in commands {
-            println!("{:?}", cmd);
             env.eval(&cmd);
         }
     }
 
     let du_by_dir = root.du_by_dir();
-
-    println!("{:#?}", du_by_dir);
 
     let sum_to_delete: usize = du_by_dir.values().filter(|v| **v <= 100_000).sum();
 
