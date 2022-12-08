@@ -59,7 +59,6 @@ impl<const N: usize> Field<N> {
       visibility_check = true;
 
       // right
-      for check_x in 0..x {
       for check_x in x+1..side_length {
         let other_tree = self.get(check_x, y);
         if other_tree >= cur_tree_height {
