@@ -43,6 +43,7 @@ impl<const N: usize> Field<N> {
     } else {
       let mut visibility_check = true;
 
+      // left
       for check_x in 0..x {
         let other_tree = self.get(check_x, y);
         if other_tree >= cur_tree_height {
@@ -57,6 +58,8 @@ impl<const N: usize> Field<N> {
 
       visibility_check = true;
 
+      // right
+      for check_x in 0..x {
       for check_x in x+1..side_length {
         let other_tree = self.get(check_x, y);
         if other_tree >= cur_tree_height {
@@ -71,6 +74,7 @@ impl<const N: usize> Field<N> {
 
       visibility_check = true;
 
+      // up
       for check_y in 0..y {
         let other_tree = self.get(x, check_y);
         if other_tree >= cur_tree_height {
@@ -85,6 +89,7 @@ impl<const N: usize> Field<N> {
 
       visibility_check = true;
 
+      // down
       for check_y in y+1..side_length {
         let other_tree = self.get(x, check_y);
         if other_tree >= cur_tree_height {
@@ -122,6 +127,7 @@ impl<const N: usize> Field<N> {
     let mut up_score: usize = 0;
     let mut down_score: usize = 0;
 
+    // left
     for d_x in 1..=x as isize {
       let check_tree = self.get((x as isize - d_x) as usize, y);
       left_score += 1;
@@ -130,6 +136,7 @@ impl<const N: usize> Field<N> {
       }
     }
 
+    // right
     for d_x in 1..(side_length - x) as isize {
       let check_tree = self.get((x as isize + d_x) as usize, y);
       right_score += 1;
@@ -138,6 +145,7 @@ impl<const N: usize> Field<N> {
       }
     }
 
+    // up
     for d_y in 1..=y as isize {
       let check_tree = self.get(x, (y as isize - d_y) as usize);
       up_score += 1;
@@ -146,6 +154,7 @@ impl<const N: usize> Field<N> {
       }
     }
 
+    // down
     for d_y in 1..(side_length - y) as isize {
       let check_tree = self.get(x, (y as isize + d_y) as usize);
       down_score += 1;
@@ -192,7 +201,7 @@ impl<const N: usize> Field<N> {
   }
 
   pub fn max(&self) -> Option<&usize> {
-    self.trees.iter().filter(|t| **t != 0).max()
+    self.trees.iter().max()
   }
 }
 
