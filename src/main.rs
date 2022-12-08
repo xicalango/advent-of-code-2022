@@ -7,6 +7,7 @@ pub mod day4;
 pub mod day5;
 pub mod day6;
 pub mod day7;
+pub mod day8;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -18,24 +19,35 @@ pub trait Scored {
 fn main() {
     println!("day1");
     day1_main();
+    println!();
 
     println!("day2");
     day2_main();
+    println!();
 
     println!("day3");
     day3_main();
+    println!();
 
     println!("day4");
     day4_main();
+    println!();
 
     println!("day5");
     day5_main();
+    println!();
 
     println!("day6");
     day6_main();
+    println!();
 
     println!("day7");
     day7_main();
+    println!();
+
+    println!("day8");
+    day8_main();
+    println!();
 }
 
 fn day1_main() {
@@ -165,3 +177,17 @@ fn day7_main() {
 
     println!("found: {:?}", element.unwrap() + cleanup_space as isize);
 }
+
+fn day8_main() {
+  use day8::*;
+
+  let input_data = include_str!("../res/day8-trees.txt");
+  let field: Field<9801> = input_data.parse().unwrap();
+  
+  let vis_field = field.to_visibility_field();
+  println!("visible trees: {}", vis_field.count_non_zero());
+
+  let score_field = field.to_score_field();
+  println!("max score: {:?}", score_field.max());
+}
+
