@@ -200,7 +200,7 @@ mod test {
         let cmds : Result<Vec<Command>, Error> = INPUT.lines().map(|l| l.trim_end().parse()).collect();
         let cmds = cmds.unwrap();
 
-        let count = apply_commands(cmds);
+        let count = apply_commands(&cmds);
         println!("tail visited: {}", count);
         assert_eq!(count, 13);
     }
@@ -210,7 +210,7 @@ mod test {
         let cmds : Result<Vec<Command>, Error> = INPUT.lines().map(|l| l.trim_end().parse()).collect();
         let cmds = cmds.unwrap();
 
-        let count = apply_commands_10fold(cmds);
+        let count = apply_commands_10fold(&cmds);
         println!("tail visited: {}", count);
         assert_eq!(count, 1);
     }
@@ -221,7 +221,7 @@ mod test {
         let cmds : Result<Vec<Command>, Error> = input.lines().map(|l| l.trim_end().parse()).collect();
         let cmds = cmds.unwrap();
 
-        let count = apply_commands_10fold(cmds);
+        let count = apply_commands_10fold(&cmds);
         println!("tail visited: {}", count);
         assert_eq!(count, 36);
 
