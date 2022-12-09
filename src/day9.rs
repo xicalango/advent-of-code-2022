@@ -118,15 +118,6 @@ pub fn apply_commands_10fold(commands: Vec<Command>) -> usize {
     let mut head = Vec2::default();
     let mut tails: [Vec2; 9] = Default::default();
 
-    for _ in 0..cmd.steps {
-        let head_prev = head.clone();
-        head.move_mut(&dir_vector);
-        if head.dist_sq(&tail) > 2 {
-            tail = head_prev;
-            position_collector.insert(tail.clone());
-        }
-    }
-
     todo!()
 }
 
