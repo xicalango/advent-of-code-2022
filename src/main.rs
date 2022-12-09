@@ -1,5 +1,7 @@
 extern crate core;
 
+use std::num::ParseIntError;
+
 pub mod day1;
 pub mod day2;
 pub mod day3;
@@ -8,9 +10,16 @@ pub mod day5;
 pub mod day6;
 pub mod day7;
 pub mod day8;
+pub mod day9;
 
 #[derive(Debug)]
 pub struct Error(String);
+
+impl From<ParseIntError> for Error {
+    fn from(pie: ParseIntError) -> Self {
+        Error(pie.to_string())
+    }
+}
 
 pub trait Scored {
     fn get_score(&self) -> u32;
@@ -47,6 +56,10 @@ fn main() {
 
     println!("day8");
     day8_main();
+    println!();
+
+    println!("day9");
+    day9_main();
     println!();
 }
 
@@ -191,3 +204,13 @@ fn day8_main() {
   println!("max score: {:?}", score_field.max());
 }
 
+fn day9_main() {
+    use day9::*;
+
+    let input_data = include_str!("../res/day9-steps.txt");
+    let cmds : Result<Vec<Command>, Error> = input_data.lines().map(|l| l.trim_end().parse()).collect();
+    let cmds = cmds.unwrap();
+
+    let count = apply_commands(cmds);
+    println!("visited fields: {}", count);
+}
