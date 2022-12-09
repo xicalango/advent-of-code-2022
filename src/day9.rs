@@ -31,10 +31,14 @@ impl Vec2 {
         *y = y.signum();
     }
 
-    pub fn scale(&mut self, factor: i32) {
-        let Vec2(x,y) = self;
-        *x *= factor;
-        *y *= factor;
+    pub fn move_towards(&mut self, target: &Vec2) {
+        let Vec2(x1,y1) = self;
+        let Vec2(x2, y2) = target;
+
+        let mut delta = Vec2(*x2-*x1, *y2-*y1);
+        delta. normalize();
+        self.move_mut(&delta);
+
     }
 }
 
@@ -64,10 +68,10 @@ impl FromStr for Dir {
 impl From<&Dir> for Vec2 {
     fn from(cmd: &Dir) -> Self {
         match cmd {
-            Dir::Left => Vec2(1, 0),
-            Dir::Right => Vec2(-1, 0),
-            Dir::Up => Vec2(0, -1),
-            Dir::Down => Vec2(0, 1),
+            Dir::Left => Vec2(-1, 0),
+            Dir::Right => Vec2(1, 0),
+            Dir::Up => Vec2(0, 1),
+            Dir::Down => Vec2(0, -1),
         }
     }
 }
@@ -91,7 +95,7 @@ impl FromStr for Command {
     }
 }
 
-pub fn apply_commands(commands: Vec<Command>) -> usize {
+pub fn apply_commands(commands: &Vec<Command>) -> usize {
     let mut head = Vec2::default();
     let mut tail = Vec2::default();
     let mut position_collector: HashSet<Vec2> = HashSet::new();
@@ -114,11 +118,66 @@ pub fn apply_commands(commands: Vec<Command>) -> usize {
     position_collector.len()
 }
 
-pub fn apply_commands_10fold(commands: Vec<Command>) -> usize {
+pub fn apply_commands_10fold(commands: &Vec<Command>) -> usize {
     let mut head = Vec2::default();
     let mut tails: [Vec2; 9] = Default::default();
+    let mut position_collector: HashSet<Vec2> = HashSet::new();
 
-    todo!()
+    for cmd in commands {
+
+        let dir_vector: Vec2 = (&cmd.dir).into();
+
+        for _ in 0..cmd.steps {
+
+            /*
+
+            println!("dir: {:?} step: {}/{}", cmd.dir, i+1, cmd.steps); 
+
+            for y in 0..6 {
+                for x in 0..6 {
+                    let pos = Vec2(x, 5-y);
+                    if head == pos {
+                        print!("H");
+                    } else {
+                        let mut prnt = false;
+                        for (i, t) in tails.iter().enumerate() {
+                            if t == &pos {
+                                print!("{}", i+1);
+                                prnt = true;
+                                break;
+                            }
+                        }
+
+                        if !prnt {
+                            if position_collector.contains(&pos) {
+                                print!("#");
+                            } else {
+                                print!(".");
+                            }
+                        }
+                    }
+                }
+                println!();
+            }
+            println!();
+            println!();
+            */
+
+            head.move_mut(&dir_vector);
+
+            let mut prev_head = &head;
+
+            for tail in tails.iter_mut() {
+                if prev_head.dist_sq(tail) > 2 {
+                    tail.move_towards(prev_head);
+                }
+                prev_head = tail;
+            }
+            position_collector.insert(tails[8].clone());
+        }
+    }
+
+    position_collector.len()
 }
 
 #[cfg(test)]
@@ -143,5 +202,28 @@ mod test {
 
         let count = apply_commands(cmds);
         println!("tail visited: {}", count);
+        assert_eq!(count, 13);
+    }
+
+    #[test]
+    fn test_run_10() {
+        let cmds : Result<Vec<Command>, Error> = INPUT.lines().map(|l| l.trim_end().parse()).collect();
+        let cmds = cmds.unwrap();
+
+        let count = apply_commands_10fold(cmds);
+        println!("tail visited: {}", count);
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_run_10_2() {
+        let input = include_str!("../res/day9-steps_example2.txt");
+        let cmds : Result<Vec<Command>, Error> = input.lines().map(|l| l.trim_end().parse()).collect();
+        let cmds = cmds.unwrap();
+
+        let count = apply_commands_10fold(cmds);
+        println!("tail visited: {}", count);
+        assert_eq!(count, 36);
+
     }
 }

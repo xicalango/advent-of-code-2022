@@ -211,6 +211,9 @@ fn day9_main() {
     let cmds : Result<Vec<Command>, Error> = input_data.lines().map(|l| l.trim_end().parse()).collect();
     let cmds = cmds.unwrap();
 
-    let count = apply_commands(cmds);
+    let count = apply_commands(&cmds);
     println!("visited fields: {}", count);
+
+    let count_10fold = apply_commands_10fold(&cmds);
+    println!("visited fields (10fold): {}", count_10fold);
 }
