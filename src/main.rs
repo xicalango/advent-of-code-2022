@@ -11,6 +11,7 @@ pub mod day6;
 pub mod day7;
 pub mod day8;
 pub mod day9;
+pub mod day10;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -60,6 +61,10 @@ fn main() {
 
     println!("day9");
     day9_main();
+    println!();
+
+    println!("day10");
+    day10_main();
     println!();
 }
 
@@ -216,4 +221,14 @@ fn day9_main() {
 
     let count_10fold = apply_commands_10fold(&cmds);
     println!("visited fields (10fold): {}", count_10fold);
+}
+
+fn day10_main() {
+    use day10::*;
+
+    let input_data = include_str!("../res/day10-instr.txt");
+    let signal_strengths = get_signal_strength(input_data.lines());
+    let signal_strength_sum: i32 = signal_strengths.iter().map(|m| m.measurement()).sum();
+
+    println!("signal strengths: {}", signal_strength_sum);
 }
