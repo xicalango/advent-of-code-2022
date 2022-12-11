@@ -243,13 +243,28 @@ fn day11_main() {
 
     let input_data = include_str!("../res/day11-apes.txt");
     let monkey_meta: AllMonkeyMeta = input_data.parse().unwrap();
-    let mut monkey_state: AllMonkeys = monkey_meta.start_eval();
+    {
+        let mut monkey_state: AllMonkeys = monkey_meta.start_eval();
 
-    monkey_state.eval_rounds::<ReduceWorry>(20);
+        monkey_state.eval_rounds(&ReduceWorry, 20);
 
-    let active = monkey_state.find_most_active::<2>();
+        let active = monkey_state.find_most_active::<2>();
 
-    let business = active.iter().fold(1, |a, i| a * *i);
-    println!("business: {}", business);
+        let business = active.iter().fold(1, |a, i| a * *i);
+        println!("business 20: {}", business);
+    }
+
+    {
+        let mut monkey_state: AllMonkeys = monkey_meta.start_eval();
+
+        let worry = monkey_meta.get_worry_mod();
+
+        monkey_state.eval_rounds(&worry, 10_000);
+
+        let active = monkey_state.find_most_active::<2>();
+
+        let business = active.iter().fold(1, |a, i| a * *i);
+        println!("business 10000: {}", business);
+    }
 
 }

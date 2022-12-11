@@ -14,7 +14,6 @@ pub enum Operation {
 impl Operation {
 
     pub fn eval(&self, op: &u64) -> u64 {
-        println!("op: {}", op);
         match self {
             Operation::Add(v) => op + v,
             Operation::Mul(v) => op * v,
@@ -116,8 +115,19 @@ impl FromStr for AllMonkeyMeta {
 
         Ok(AllMonkeyMeta(result))
     }
+
+
 }
 
+impl AllMonkeyMeta {
+
+    pub fn get_worry_mod(&self) -> ModWorry {
+        let AllMonkeyMeta(metas) = self;
+        let modulo = metas.iter().map(|f| f.div_test).fold(1, |a, o| a * o);
+        ModWorry(modulo)
+    }
+
+}
 
 #[derive(Debug)]
 pub struct MonkeyState<'a> {
@@ -127,27 +137,35 @@ pub struct MonkeyState<'a> {
 }
 
 pub trait Worry {
-    fn apply_worry(old_worry: u64) -> u64;
+    fn apply_worry(&self, old_worry: u64) -> u64;
 }
 
 pub struct ReduceWorry;
 pub struct NoWorries;
+pub struct ModWorry(u64);
 
 impl Worry for ReduceWorry {
-    fn apply_worry(old_worry: u64) -> u64 {
+    fn apply_worry(&self, old_worry: u64) -> u64 {
         old_worry / 3
     }
 }
 
 impl Worry for NoWorries {
-    fn apply_worry(old_worry: u64) -> u64 {
+    fn apply_worry(&self, old_worry: u64) -> u64 {
         old_worry
+    }
+}
+
+impl Worry for ModWorry {
+    fn apply_worry(&self, old_worry: u64) -> u64 {
+        let ModWorry(worry) = self;
+        old_worry % worry
     }
 }
 
 impl<'a> MonkeyState<'a> {
 
-    pub fn eval_one_item<W: Worry>(&mut self) -> Option<(u64, &usize)> {
+    pub fn eval_one_item(&mut self, worry: &impl Worry) -> Option<(u64, &usize)> {
         let front = self.items.pop_front();
 
         if let None = front {
@@ -158,7 +176,7 @@ impl<'a> MonkeyState<'a> {
 
         let item = front.unwrap();
         let new_worry = self.meta.op.eval(&item);
-        let new_worry = W::apply_worry(new_worry);
+        let new_worry = worry.apply_worry(new_worry);
 
         let next_monkey = if new_worry % self.meta.div_test == 0 {
             &self.meta.next_monkeys.0
@@ -188,7 +206,7 @@ impl AllMonkeyMeta {
 
 impl<'a> AllMonkeys<'a> {
 
-    pub fn eval_round<W: Worry>(&mut self) {
+    pub fn eval_round(&mut self, worry: &impl Worry) {
         let AllMonkeys(monkeys) = self;
 
         let mut add_items: Vec<Vec<u64>> = vec![Vec::default(); monkeys.len()];
@@ -201,7 +219,7 @@ impl<'a> AllMonkeys<'a> {
 
             loop {
                 // println!("eval monkey {}: {:?}", i, monkey);
-                let result = monkey.eval_one_item::<W>();
+                let result = monkey.eval_one_item(worry);
                 // println!("got: {:?}", result);
                 match result {
                     None => break,
@@ -220,9 +238,9 @@ impl<'a> AllMonkeys<'a> {
 
     }
 
-    pub fn eval_rounds<W: Worry>(&mut self, rounds: usize) {
+    pub fn eval_rounds(&mut self, worry: &impl Worry, rounds: usize) {
         for _ in 0..rounds {
-            self.eval_round::<W>();
+            self.eval_round(worry);
         }
     }
 
@@ -280,7 +298,7 @@ mod test {
 
         let mut all_monkeys: AllMonkeys = allmeta.start_eval();
 
-        all_monkeys.eval_rounds::<ReduceWorry>(20);
+        all_monkeys.eval_rounds(&ReduceWorry, 20);
 
         let actives = all_monkeys.find_most_active::<2>();
         println!("actives: {:?}", actives);
@@ -297,7 +315,9 @@ mod test {
 
         let mut all_monkeys: AllMonkeys = allmeta.start_eval();
 
-        all_monkeys.eval_rounds::<NoWorries>(10_000);
+        let worry_mod = allmeta.get_worry_mod();
+
+        all_monkeys.eval_rounds(&worry_mod, 10_000);
 
         let actives = all_monkeys.find_most_active::<2>();
         println!("actives: {:?}", actives);
@@ -305,7 +325,7 @@ mod test {
         let business = actives.iter().fold(1, |a, i| a * *i);
         println!("business: {}", business);
 
-        assert_eq!(business, 10605);
+        assert_eq!(business, 2713310158);
     }
 
 }
