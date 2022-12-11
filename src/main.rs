@@ -67,6 +67,10 @@ fn main() {
     println!("day10");
     day10_main();
     println!();
+
+    println!("day11");
+    day11_main();
+    println!();
 }
 
 fn day1_main() {
@@ -232,4 +236,20 @@ fn day10_main() {
     let signal_strength_sum: i32 = signal_strengths.iter().map(|m| m.measurement()).sum();
 
     println!("signal strengths: {}", signal_strength_sum);
+}
+
+fn day11_main() {
+    use day11::*;
+
+    let input_data = include_str!("../res/day11-apes.txt");
+    let monkey_meta: AllMonkeyMeta = input_data.parse().unwrap();
+    let mut monkey_state: AllMonkeys = monkey_meta.start_eval();
+
+    monkey_state.eval_rounds::<ReduceWorry>(20);
+
+    let active = monkey_state.find_most_active::<2>();
+
+    let business = active.iter().fold(1, |a, i| a * *i);
+    println!("business: {}", business);
+
 }

@@ -1,5 +1,6 @@
 
 use std::{str::FromStr, num::ParseIntError};
+use std::collections::VecDeque;
 
 use crate::Error;
 
@@ -8,6 +9,19 @@ pub enum Operation {
     Add(u64),
     Mul(u64),
     Square,
+}
+
+impl Operation {
+
+    pub fn eval(&self, op: &u64) -> u64 {
+        println!("op: {}", op);
+        match self {
+            Operation::Add(v) => op + v,
+            Operation::Mul(v) => op * v,
+            Operation::Square => op * op,
+        }
+    }
+
 }
 
 impl FromStr for Operation {
@@ -37,6 +51,19 @@ impl Default for MonkeyMeta {
     fn default() -> Self {
         Self { starting_items: Default::default(), op: Operation::Add(0), div_test: Default::default(), next_monkeys: Default::default() }
     }
+}
+
+impl MonkeyMeta {
+
+    pub fn start_eval(&self) -> MonkeyState {
+        let items = self.starting_items.clone().into();
+        MonkeyState {
+            meta: self,
+            items,
+            inspect_counter: 0,
+        }
+    }
+
 }
 
 #[derive(Debug)]
@@ -92,16 +119,126 @@ impl FromStr for AllMonkeyMeta {
 }
 
 
-#[derive(Debug, Default)]
-pub struct MonkeyState {
-    meta: MonkeyMeta,
-    items: Vec<u64>,
+#[derive(Debug)]
+pub struct MonkeyState<'a> {
+    meta: &'a MonkeyMeta,
+    items: VecDeque<u64>,
     inspect_counter: u64,
 }
 
-impl From<MonkeyMeta> for MonkeyState {
+pub trait Worry {
+    fn apply_worry(old_worry: u64) -> u64;
+}
 
-  
+pub struct ReduceWorry;
+pub struct NoWorries;
+
+impl Worry for ReduceWorry {
+    fn apply_worry(old_worry: u64) -> u64 {
+        old_worry / 3
+    }
+}
+
+impl Worry for NoWorries {
+    fn apply_worry(old_worry: u64) -> u64 {
+        old_worry
+    }
+}
+
+impl<'a> MonkeyState<'a> {
+
+    pub fn eval_one_item<W: Worry>(&mut self) -> Option<(u64, &usize)> {
+        let front = self.items.pop_front();
+
+        if let None = front {
+            return None;
+        }
+
+        self.inspect_counter += 1;
+
+        let item = front.unwrap();
+        let new_worry = self.meta.op.eval(&item);
+        let new_worry = W::apply_worry(new_worry);
+
+        let next_monkey = if new_worry % self.meta.div_test == 0 {
+            &self.meta.next_monkeys.0
+        } else {
+            &self.meta.next_monkeys.1
+        };
+
+        Some((new_worry, next_monkey))
+    }
+
+}
+
+#[derive(Debug)]
+pub struct AllMonkeys<'a>(Vec<MonkeyState<'a>>);
+
+impl AllMonkeyMeta {
+
+    pub fn start_eval(&self) -> AllMonkeys {
+        let AllMonkeyMeta(monkey_meta) = self;
+
+        let conv: Vec<MonkeyState> = monkey_meta.iter().map(|f| f.start_eval()).collect();
+
+        AllMonkeys(conv)
+    }
+
+}
+
+impl<'a> AllMonkeys<'a> {
+
+    pub fn eval_round<W: Worry>(&mut self) {
+        let AllMonkeys(monkeys) = self;
+
+        let mut add_items: Vec<Vec<u64>> = vec![Vec::default(); monkeys.len()];
+
+        for (i, monkey) in monkeys.iter_mut().enumerate() {
+
+            for item in add_items[i].drain(..) {
+                monkey.items.push_back(item);
+            }
+
+            loop {
+                // println!("eval monkey {}: {:?}", i, monkey);
+                let result = monkey.eval_one_item::<W>();
+                // println!("got: {:?}", result);
+                match result {
+                    None => break,
+                    Some((worry, next)) => {
+                        add_items[*next].push(worry);
+                    }
+                }
+            }
+        }
+
+        for (i, items) in add_items.iter_mut().enumerate() {
+            for item in items.drain(..) {
+                monkeys[i].items.push_back(item);
+            }
+        }
+
+    }
+
+    pub fn eval_rounds<W: Worry>(&mut self, rounds: usize) {
+        for _ in 0..rounds {
+            self.eval_round::<W>();
+        }
+    }
+
+    pub fn find_most_active<const N: usize>(&self) -> Vec<&u64> {
+        let AllMonkeys(monkeys) = self;
+
+        assert!(N <= monkeys.len());
+
+        let mut inspections: Vec<&u64> = monkeys.iter().map(|m| &m.inspect_counter).collect();
+        inspections.sort();
+        inspections.reverse();
+
+        let _ = inspections.split_off(N);
+
+        inspections
+    }
 
 }
 
@@ -135,6 +272,40 @@ mod test {
     fn test_parse_monkey_meta() {
         let allmeta: AllMonkeyMeta = EXAMPLE.parse().unwrap();
         println!("{:#?}", allmeta);
+    }
+
+    #[test]
+    fn test_eval() {
+        let allmeta: AllMonkeyMeta = EXAMPLE.parse().unwrap();
+
+        let mut all_monkeys: AllMonkeys = allmeta.start_eval();
+
+        all_monkeys.eval_rounds::<ReduceWorry>(20);
+
+        let actives = all_monkeys.find_most_active::<2>();
+        println!("actives: {:?}", actives);
+
+        let business = actives.iter().fold(1, |a, i| a * *i);
+        println!("business: {}", business);
+
+        assert_eq!(business, 10605);
+    }
+
+    #[test]
+    fn test_eval_no_worry() {
+        let allmeta: AllMonkeyMeta = EXAMPLE.parse().unwrap();
+
+        let mut all_monkeys: AllMonkeys = allmeta.start_eval();
+
+        all_monkeys.eval_rounds::<NoWorries>(10_000);
+
+        let actives = all_monkeys.find_most_active::<2>();
+        println!("actives: {:?}", actives);
+
+        let business = actives.iter().fold(1, |a, i| a * *i);
+        println!("business: {}", business);
+
+        assert_eq!(business, 10605);
     }
 
 }
