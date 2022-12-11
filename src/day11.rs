@@ -238,8 +238,8 @@ impl<'a> AllMonkeys<'a> {
 
     }
 
-    pub fn eval_rounds(&mut self, worry: &impl Worry, rounds: usize) {
-        for _ in 0..rounds {
+    pub fn eval_rounds<const ROUNDS: usize>(&mut self, worry: &impl Worry) {
+        for _ in 0..ROUNDS {
             self.eval_round(worry);
         }
     }
@@ -298,7 +298,7 @@ mod test {
 
         let mut all_monkeys: AllMonkeys = allmeta.start_eval();
 
-        all_monkeys.eval_rounds(&ReduceWorry, 20);
+        all_monkeys.eval_rounds::<20>(&ReduceWorry);
 
         let actives = all_monkeys.find_most_active::<2>();
         println!("actives: {:?}", actives);
@@ -317,7 +317,7 @@ mod test {
 
         let worry_mod = allmeta.get_worry_mod();
 
-        all_monkeys.eval_rounds(&worry_mod, 10_000);
+        all_monkeys.eval_rounds::<10_000>(&worry_mod);
 
         let actives = all_monkeys.find_most_active::<2>();
         println!("actives: {:?}", actives);

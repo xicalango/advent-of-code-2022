@@ -246,7 +246,7 @@ fn day11_main() {
     {
         let mut monkey_state: AllMonkeys = monkey_meta.start_eval();
 
-        monkey_state.eval_rounds(&ReduceWorry, 20);
+        monkey_state.eval_rounds::<20>(&ReduceWorry);
 
         let active = monkey_state.find_most_active::<2>();
 
@@ -259,7 +259,7 @@ fn day11_main() {
 
         let worry = monkey_meta.get_worry_mod();
 
-        monkey_state.eval_rounds(&worry, 10_000);
+        monkey_state.eval_rounds::<10_000>(&worry);
 
         let active = monkey_state.find_most_active::<2>();
 
