@@ -299,17 +299,12 @@ fn day12_main() {
 
 
     {
-        let mut lowest: u32 = u32::MAX;
+        let end_pos = &height_map.get_end_pos();
 
-        for starting_pos in height_map.get_lowest_positions() {
-            let bfs = height_map.filtered_bfs(&starting_pos, can_climb);
-            let dists = bfs.run();
+        let bfs = height_map.filtered_bfs(&end_pos, |c, n| *c <= *n || *c == n+1);
+        let dists = bfs.run();
 
-            let steps = dists[*ey as usize][*ex as usize];
-            if steps > 0 && steps < lowest {
-                lowest = steps;
-            }
-        }
+        let lowest = height_map.get_lowest_positions().iter().map(|(lx, ly)| dists[*ly as usize][*lx as usize]).filter(|v| v > &0).min().unwrap();
 
         println!("{}", lowest);
     }

@@ -180,10 +180,6 @@ impl<'a, F> Bfs<'a, F>
             visited.insert(cur.clone());
             dists[*cy as usize][*cx as usize] = dist;
 
-            if cur == self.height_map.end_pos {
-               break;
-            }
-
             let surroundings = self.height_map.surroundings(&cur);
 
             for next in surroundings {
@@ -254,19 +250,12 @@ mod test {
     #[test]
     fn test_ms_bfs() {
         let hm: HeightMap = EXAMPLE.parse().unwrap();
-        let (ex, ey) = &hm.get_end_pos();
-
-        let mut lowest: u32 = u32::MAX;
-
-        for starting_pos in hm.get_lowest_positions() {
-            let bfs = hm.filtered_bfs(&starting_pos, can_climb);
-            let dists = bfs.run();
-
-            let steps = dists[*ey as usize][*ex as usize];
-            if steps < lowest {
-                lowest = steps;
-            }
-        }
+        let end_pos = &hm.get_end_pos();
+        
+        let bfs = hm.filtered_bfs(&end_pos, |c, n| *c <= *n || *c == n+1);
+        let dists = bfs.run();
+        
+        let lowest = hm.get_lowest_positions().iter().map(|(lx, ly)| dists[*ly as usize][*lx as usize]).filter(|v| v > &0).min().unwrap();
 
         println!("{}", lowest);
         assert_eq!(29, lowest);
