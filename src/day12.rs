@@ -1,19 +1,31 @@
+use std::collections::{HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+
 use crate::Error;
+
+type Vec2 = (u8, u8);
 
 #[derive(Debug)]
 pub struct HeightMap {
     map: Vec<Vec<u8>>,
     width: u8,
     height: u8,
-    start_pos: (u8, u8),
-    end_pos: (u8, u8),
+    start_pos: Vec2,
+    end_pos: Vec2,
+}
+
+pub struct Bfs<'a, F>
+    where F: Fn(&u8, &u8) -> bool
+{
+    height_map: &'a HeightMap,
+    filter: F,
 }
 
 fn parse_height(c: &char) -> u8 {
     match c {
-        'S' | 'E' => 0,
+        'S' => 1,
+        'E' => 26,
         c => (*c as u8 - 'a' as u8) + 1
     }
 }
@@ -51,7 +63,7 @@ impl FromStr for HeightMap {
 
         let height = map.len() as u8;
 
-        Ok(HeightMap{
+        Ok(HeightMap {
             map,
             width: width.unwrap(),
             height,
@@ -59,7 +71,6 @@ impl FromStr for HeightMap {
             end_pos: end_pos.unwrap(),
         })
     }
-
 }
 
 impl Display for HeightMap {
@@ -76,8 +87,8 @@ impl Display for HeightMap {
                         } else {
                             panic!();
                         }
-                    },
-                    i => ((i-1) + 'a' as u8) as char
+                    }
+                    i => ((i - 1) + 'a' as u8) as char
                 };
                 write!(f, "{}", c)?;
             }
@@ -87,9 +98,92 @@ impl Display for HeightMap {
     }
 }
 
+impl HeightMap {
+    pub fn filtered_bfs<F: Fn(&u8, &u8) -> bool>(&self, filter: F) -> Bfs<F> {
+        Bfs {
+            height_map: self,
+            filter,
+        }
+    }
+
+    pub fn surroundings(&self, pos: &Vec2) -> Vec<Vec2> {
+        let mut result = Vec::new();
+
+        let (x, y) = pos;
+
+        if *x > 0 {
+            result.push((x - 1, *y));
+        }
+
+        if *x < self.width - 1 {
+            result.push((x + 1, *y));
+        }
+
+        if *y > 0 {
+            result.push((*x, y - 1));
+        }
+
+        if *y < self.height - 1 {
+            result.push((*x, y + 1));
+        }
+
+        result
+    }
+
+    pub fn get_at(&self, pos: &Vec2) -> &u8 {
+        let (x, y) = pos;
+        &self.map[*y as usize][*x as usize]
+    }
+
+    pub fn get_end_pos(&self) -> &Vec2 {
+        &self.end_pos
+    }
+}
+
+impl<'a, F> Bfs<'a, F>
+    where F: Fn(&u8, &u8) -> bool
+{
+    pub fn run(self) -> Vec<Vec<u32>> {
+        let mut frontier: VecDeque<(Vec2, u32)> = VecDeque::new();
+        frontier.push_back((self.height_map.start_pos.clone(), 0));
+
+        let mut visited: HashSet<Vec2> = HashSet::new();
+
+        let mut dists: Vec<Vec<u32>> = self.height_map.map.iter().map(|v| v.iter().map(|_| 0 as u32).collect()).collect();
+
+        while let Some((cur, dist)) = frontier.pop_front() {
+            let (cx, cy) = &cur;
+            visited.insert(cur.clone());
+            dists[*cy as usize][*cx as usize] = dist;
+
+            if cur == self.height_map.end_pos {
+                break;
+            }
+
+            let surroundings = self.height_map.surroundings(&cur);
+
+            for next in surroundings {
+                if visited.contains(&next) {
+                    continue;
+                }
+
+                let cur_height = self.height_map.get_at(&cur);
+                let next_height = self.height_map.get_at(&next);
+
+                if !(self.filter)(cur_height, next_height) {
+                    continue;
+                }
+
+                frontier.push_back((next, dist+1));
+            }
+        }
+
+        dists
+    }
+}
+
 #[cfg(test)]
 mod test {
-
     use super::*;
 
     static EXAMPLE: &'static str = include_str!("../res/day12-map_example.txt");
@@ -101,4 +195,24 @@ mod test {
         println!("{}", hm);
     }
 
+    #[test]
+    fn bfs() {
+        let hm: HeightMap = EXAMPLE.parse().unwrap();
+
+        let bfs = hm.filtered_bfs(|c, n| *n <= *c || *n == c+1);
+        let dists = bfs.run();
+
+        for row in dists.iter() {
+            for h in row {
+                print!("{:02}  ", h);
+            }
+            println!();
+        }
+
+        let (ex, ey) = &hm.end_pos;
+
+        let steps = dists[*ey as usize][*ex as usize];
+        println!("{}", steps);
+        assert_eq!(31, steps);
+    }
 }

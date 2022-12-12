@@ -72,6 +72,10 @@ fn main() {
     println!("day11");
     day11_main();
     println!();
+
+    println!("day12");
+    day12_main();
+    println!();
 }
 
 fn day1_main() {
@@ -268,4 +272,19 @@ fn day11_main() {
         println!("business 10000: {}", business);
     }
 
+}
+
+fn day12_main() {
+    use day12::*;
+
+    let input_data = include_str!("../res/day12-map.txt");
+
+    let height_map: HeightMap = input_data.parse().unwrap();
+
+    let bfs = height_map.filtered_bfs(|c, n| *c <= *n || *n == c+1);
+    let dists = bfs.run();
+
+    let (ex, ey) = &height_map.get_end_pos();
+
+    println!("{}", dists[*ey as usize][*ex as usize]);
 }
