@@ -252,7 +252,7 @@ mod test {
         let hm: HeightMap = EXAMPLE.parse().unwrap();
         let end_pos = &hm.get_end_pos();
         
-        let bfs = hm.filtered_bfs(&end_pos, |c, n| *c >= *n || *c == n+1);
+        let bfs = hm.filtered_bfs(&end_pos, |c, n| *c <= *n || *c == n+1);
         let dists = bfs.run();
         
         let lowest = hm.get_lowest_positions().iter().map(|(lx, ly)| dists[*ly as usize][*lx as usize]).filter(|v| v > &0).min().unwrap();
