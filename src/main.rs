@@ -281,10 +281,36 @@ fn day12_main() {
 
     let height_map: HeightMap = input_data.parse().unwrap();
 
-    let bfs = height_map.filtered_bfs(|c, n| *c <= *n || *n == c+1);
+    let bfs = height_map.filtered_bfs(height_map.get_start_pos(), can_climb);
     let dists = bfs.run();
+
+    /*
+    for row in dists.iter() {
+        for h in row {
+            print!("{:03}   ", h);
+        }
+        println!();
+    }
+     */
 
     let (ex, ey) = &height_map.get_end_pos();
 
     println!("{}", dists[*ey as usize][*ex as usize]);
+
+
+    {
+        let mut lowest: u32 = u32::MAX;
+
+        for starting_pos in height_map.get_lowest_positions() {
+            let bfs = height_map.filtered_bfs(&starting_pos, can_climb);
+            let dists = bfs.run();
+
+            let steps = dists[*ey as usize][*ex as usize];
+            if steps > 0 && steps < lowest {
+                lowest = steps;
+            }
+        }
+
+        println!("{}", lowest);
+    }
 }

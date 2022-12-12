@@ -20,6 +20,7 @@ pub struct Bfs<'a, F>
 {
     height_map: &'a HeightMap,
     filter: F,
+    start_pos: &'a Vec2,
 }
 
 fn parse_height(c: &char) -> u8 {
@@ -99,10 +100,11 @@ impl Display for HeightMap {
 }
 
 impl HeightMap {
-    pub fn filtered_bfs<F: Fn(&u8, &u8) -> bool>(&self, filter: F) -> Bfs<F> {
+    pub fn filtered_bfs<'a, F: Fn(&u8, &u8) -> bool>(&'a self, start_pos: &'a Vec2, filter: F) -> Bfs<F> {
         Bfs {
             height_map: self,
             filter,
+            start_pos
         }
     }
 
@@ -138,6 +140,23 @@ impl HeightMap {
     pub fn get_end_pos(&self) -> &Vec2 {
         &self.end_pos
     }
+
+    pub fn get_start_pos(&self) -> &Vec2 {
+        &self.start_pos
+    }
+
+    pub fn get_lowest_positions(&self) -> Vec<Vec2> {
+        let mut result = Vec::new();
+        for (y, row) in self.map.iter().enumerate() {
+            for (x, c) in row.iter().enumerate() {
+                if *c == 1 {
+                    result.push((x as u8, y as u8));
+                }
+            }
+        }
+
+        result
+    }
 }
 
 impl<'a, F> Bfs<'a, F>
@@ -145,19 +164,24 @@ impl<'a, F> Bfs<'a, F>
 {
     pub fn run(self) -> Vec<Vec<u32>> {
         let mut frontier: VecDeque<(Vec2, u32)> = VecDeque::new();
-        frontier.push_back((self.height_map.start_pos.clone(), 0));
+        frontier.push_back((self.start_pos.clone(), 0));
 
         let mut visited: HashSet<Vec2> = HashSet::new();
 
         let mut dists: Vec<Vec<u32>> = self.height_map.map.iter().map(|v| v.iter().map(|_| 0 as u32).collect()).collect();
 
         while let Some((cur, dist)) = frontier.pop_front() {
+
+            if visited.contains(&cur) {
+                continue;
+            }
+
             let (cx, cy) = &cur;
             visited.insert(cur.clone());
             dists[*cy as usize][*cx as usize] = dist;
 
             if cur == self.height_map.end_pos {
-                break;
+               break;
             }
 
             let surroundings = self.height_map.surroundings(&cur);
@@ -176,10 +200,21 @@ impl<'a, F> Bfs<'a, F>
 
                 frontier.push_back((next, dist+1));
             }
+
+            /*
+            println!("bfs done for {:?}", cur);
+            println!("frontier: {:?}", frontier);
+            println!("visited: {:?}", visited);
+            println!();
+            */
         }
 
         dists
     }
+}
+
+pub fn can_climb(cur: &u8, next: &u8) -> bool {
+    *next <= *cur || *next == cur+1
 }
 
 #[cfg(test)]
@@ -196,10 +231,10 @@ mod test {
     }
 
     #[test]
-    fn bfs() {
+    fn test_bfs() {
         let hm: HeightMap = EXAMPLE.parse().unwrap();
 
-        let bfs = hm.filtered_bfs(|c, n| *n <= *c || *n == c+1);
+        let bfs = hm.filtered_bfs(&hm.start_pos, can_climb);
         let dists = bfs.run();
 
         for row in dists.iter() {
@@ -214,5 +249,26 @@ mod test {
         let steps = dists[*ey as usize][*ex as usize];
         println!("{}", steps);
         assert_eq!(31, steps);
+    }
+
+    #[test]
+    fn test_ms_bfs() {
+        let hm: HeightMap = EXAMPLE.parse().unwrap();
+        let (ex, ey) = &hm.get_end_pos();
+
+        let mut lowest: u32 = u32::MAX;
+
+        for starting_pos in hm.get_lowest_positions() {
+            let bfs = hm.filtered_bfs(&starting_pos, can_climb);
+            let dists = bfs.run();
+
+            let steps = dists[*ey as usize][*ex as usize];
+            if steps < lowest {
+                lowest = steps;
+            }
+        }
+
+        println!("{}", lowest);
+        assert_eq!(29, lowest);
     }
 }
