@@ -259,7 +259,7 @@ mod test {
         let bfs = hm.filtered_bfs(&end_pos, |c, n| *c <= *n || *c == n+1);
         let dists = bfs.run();
         
-        let lowest = hm.get_lowest_positions().iter().map(|(lx, ly)| dists[*ly as usize][*lx as usize]).filter(|v| v > 0).min().unwrap();
+        let lowest = hm.get_lowest_positions().iter().map(|(lx, ly)| dists[*ly as usize][*lx as usize]).filter(|v| v > &0).min().unwrap();
 
         println!("{}", lowest);
         assert_eq!(29, lowest);
