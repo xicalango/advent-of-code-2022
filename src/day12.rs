@@ -180,10 +180,6 @@ impl<'a, F> Bfs<'a, F>
             visited.insert(cur.clone());
             dists[*cy as usize][*cx as usize] = dist;
 
-            if cur == self.height_map.end_pos {
-               break;
-            }
-
             let surroundings = self.height_map.surroundings(&cur);
 
             for next in surroundings {
@@ -256,7 +252,7 @@ mod test {
         let hm: HeightMap = EXAMPLE.parse().unwrap();
         let end_pos = &hm.get_end_pos();
         
-        let bfs = hm.filtered_bfs(&end_pos, |c, n| *c <= *n || *c == n+1);
+        let bfs = hm.filtered_bfs(&end_pos, |c, n| *c >= *n || *c == n+1);
         let dists = bfs.run();
         
         let lowest = hm.get_lowest_positions().iter().map(|(lx, ly)| dists[*ly as usize][*lx as usize]).filter(|v| v > &0).min().unwrap();
