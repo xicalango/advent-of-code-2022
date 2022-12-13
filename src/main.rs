@@ -345,7 +345,6 @@ fn day13_main() {
         let mut accu: usize = 1;
 
         for (i, e) in elements.iter().enumerate() {
-            println!("{}: {}", i+1, e);
             if e == &div1 || e == &div2 {
                 accu *= i+1;
             }
