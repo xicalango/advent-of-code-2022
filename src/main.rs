@@ -1,7 +1,3 @@
-extern crate core;
-
-use std::num::ParseIntError;
-
 pub mod day1;
 pub mod day2;
 pub mod day3;
@@ -15,6 +11,10 @@ pub mod day10;
 pub mod day11;
 pub mod day12;
 pub mod day13;
+mod bench;
+
+use std::num::ParseIntError;
+use bench::Bench;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -30,57 +30,27 @@ pub trait Scored {
 }
 
 fn main() {
-    println!("day1");
-    day1_main();
-    println!();
+    let mut bench = Bench::new();
 
-    println!("day2");
-    day2_main();
-    println!();
+    bench.run_day(1, day1_main);
+    bench.run_day(2, day2_main);
+    bench.run_day(3, day3_main);
+    bench.run_day(4, day4_main);
+    bench.run_day(5, day5_main);
+    bench.run_day(6, day6_main);
+    bench.run_day(7, day7_main);
+    bench.run_day(8, day8_main);
+    bench.run_day(9, day9_main);
+    bench.run_day(10, day10_main);
+    bench.run_day(11, day11_main);
+    bench.run_day(12, day12_main);
+    bench.run_day(13, day13_main);
 
-    println!("day3");
-    day3_main();
+    bench.print_times();
     println!();
-
-    println!("day4");
-    day4_main();
+    bench.print_total_time();
     println!();
-
-    println!("day5");
-    day5_main();
-    println!();
-
-    println!("day6");
-    day6_main();
-    println!();
-
-    println!("day7");
-    day7_main();
-    println!();
-
-    println!("day8");
-    day8_main();
-    println!();
-
-    println!("day9");
-    day9_main();
-    println!();
-
-    println!("day10");
-    day10_main();
-    println!();
-
-    println!("day11");
-    day11_main();
-    println!();
-
-    println!("day12");
-    day12_main();
-    println!();
-
-    println!("day13");
-    day13_main();
-    println!();
+    bench.print_slowest_days();
 }
 
 fn day1_main() {
