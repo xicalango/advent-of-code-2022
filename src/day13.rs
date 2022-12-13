@@ -31,12 +31,11 @@ impl Display for Element {
 }
 
 impl Element {
-    pub fn as_list(&self) -> Option<&Vec<Element>> {
-        match self {
-            Element::Value(_) => None,
-            Element::List(list) => Some(list),
-        }
+
+    pub fn wrap(v: u32) -> Element {
+        Element::List(vec![Element::Value(v)])
     }
+
 }
 
 impl Eq for Element {}
@@ -55,39 +54,25 @@ impl Ord for Element {
 
 impl PartialOrd for Element {
     fn partial_cmp(&self, other: &Element) -> Option<Ordering> {
-        let result = Some(match self {
-            Element::Value(v1) => {
-                match other {
-                    Element::Value(v2) => {
-                        v1.cmp(v2)
-                    }
-                    Element::List(_) => {
-                        let left = Element::List(vec![Element::Value(*v1)]);
-                        left.cmp(other)
-                    }
-                }
-            }
-            Element::List(l1) => {
-                match other {
-                    Element::Value(v2) => {
-                        let right = Element::List(vec![Element::Value(*v2)]);
-                        self.cmp(&right)
-                    }
-                    Element::List(l2) => {
-                        for (e1, e2) in zip(l1, l2) {
-                            match e1.cmp(e2) {
-                                Ordering::Less => return Some(Ordering::Less),
-                                Ordering::Greater => return Some(Ordering::Greater),
-                                Ordering::Equal => {}, //cmp next
-                            }
-                        }
+        use Element::*;
 
-                        l1.len().cmp(&l2.len())
+        let result = match (self, other) {
+            (Value(v1), Value(v2)) => v1.cmp(v2),
+            (Value(v1), List(_)) => Element::wrap(*v1).cmp(other),
+            (List(_), Value(v2)) => self.cmp(&Element::wrap(*v2)),
+            (List(l1), List(l2)) => {
+                for (e1, e2) in zip(l1, l2) {
+                    let ordering = e1.cmp(e2);
+                    if ordering != Ordering::Equal {
+                        return Some(ordering);
                     }
                 }
+
+                l1.len().cmp(&l2.len())
             }
-        });
-        return result
+        };
+
+        Some(result)
     }
 }
 
