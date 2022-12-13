@@ -5,7 +5,7 @@ use std::mem::replace;
 use std::str::FromStr;
 use crate::Error;
 
-#[derive(Debug, Eq, Ord, Clone)]
+#[derive(Debug, Clone)]
 pub enum Element {
     Value(u32),
     List(Vec<Element>)
@@ -39,9 +39,17 @@ impl Element {
     }
 }
 
+impl Eq for Element {}
+
 impl PartialEq<Self> for Element {
     fn eq(&self, other: &Self) -> bool {
         self.partial_cmp(other) == Some(Ordering::Equal)
+    }
+}
+
+impl Ord for Element {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }
 
@@ -55,7 +63,7 @@ impl PartialOrd for Element {
                     }
                     Element::List(_) => {
                         let left = Element::List(vec![Element::Value(*v1)]);
-                        left.partial_cmp(other).unwrap()
+                        left.cmp(other)
                     }
                 }
             }
@@ -63,12 +71,11 @@ impl PartialOrd for Element {
                 match other {
                     Element::Value(v2) => {
                         let right = Element::List(vec![Element::Value(*v2)]);
-                        self.partial_cmp(&right).unwrap()
+                        self.cmp(&right)
                     }
                     Element::List(l2) => {
                         for (e1, e2) in zip(l1, l2) {
-                            let ordering = e1.partial_cmp(e2).unwrap();
-                            match ordering {
+                            match e1.cmp(e2) {
                                 Ordering::Less => return Some(Ordering::Less),
                                 Ordering::Greater => return Some(Ordering::Greater),
                                 Ordering::Equal => {}, //cmp next
@@ -213,19 +220,11 @@ mod test {
     fn test_parse_lists1() {
         let elements: Result<Vec<Element>, Error> = EXAMPLE1.lines().filter(|l| !l.is_empty()).map(|l| l.parse()).collect();
         let mut elements = elements.unwrap();
-
-        let div1 = Element::List(vec![Element::List(vec![Element::Value(2)])]);
-        let div2 = Element::List(vec![Element::List(vec![Element::Value(6)])]);
-
         elements.sort();
-
-        let mut accu: usize = 1;
 
         for (i, e) in elements.iter().enumerate() {
             println!("{}: {}", i+1, e);
         }
-
-        println!("accu {}", accu);
     }
 
     #[test]
