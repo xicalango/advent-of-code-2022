@@ -1,29 +1,53 @@
 use std::cmp::Ordering;
+use std::fmt::{Display, Formatter};
 use std::iter::zip;
-use std::mem::{replace, transmute};
+use std::mem::replace;
 use std::str::FromStr;
 use crate::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, Ord, Clone)]
 pub enum Element {
     Value(u32),
     List(Vec<Element>)
 }
 
-impl Element {
+impl Display for Element {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Element::Value(v) => write!(f, "{}", v)?,
+            Element::List(l) => {
+                write!(f, "[")?;
+                for (i, e) in l.iter().enumerate() {
+                    write!(f, "{}", e)?;
+                    if i < l.len()-1 {
+                        write!(f, ",")?;
+                    }
+                }
+                write!(f, "]")?;
+            }
+        }
+        Ok(())
+    }
+}
 
+impl Element {
     pub fn as_list(&self) -> Option<&Vec<Element>> {
         match self {
             Element::Value(_) => None,
             Element::List(list) => Some(list),
         }
     }
-
 }
 
-impl Element {
-    fn is_in_right_order(&self, other: &Element) -> Ordering {
-        return match self {
+impl PartialEq<Self> for Element {
+    fn eq(&self, other: &Self) -> bool {
+        self.partial_cmp(other) == Some(Ordering::Equal)
+    }
+}
+
+impl PartialOrd for Element {
+    fn partial_cmp(&self, other: &Element) -> Option<Ordering> {
+        let result = Some(match self {
             Element::Value(v1) => {
                 match other {
                     Element::Value(v2) => {
@@ -31,7 +55,7 @@ impl Element {
                     }
                     Element::List(_) => {
                         let left = Element::List(vec![Element::Value(*v1)]);
-                        left.is_in_right_order(other)
+                        left.partial_cmp(other).unwrap()
                     }
                 }
             }
@@ -39,26 +63,24 @@ impl Element {
                 match other {
                     Element::Value(v2) => {
                         let right = Element::List(vec![Element::Value(*v2)]);
-                        self.is_in_right_order(&right)
+                        self.partial_cmp(&right).unwrap()
                     }
                     Element::List(l2) => {
-                        for (e1,e2) in zip(l1,l2) {
-                            match e1.is_in_right_order(e2) {
-                                Ordering::Less => return Ordering::Less,
-                                Ordering::Greater => {return Ordering::Greater},
+                        for (e1, e2) in zip(l1, l2) {
+                            let ordering = e1.partial_cmp(e2).unwrap();
+                            match ordering {
+                                Ordering::Less => return Some(Ordering::Less),
+                                Ordering::Greater => return Some(Ordering::Greater),
                                 Ordering::Equal => {}, //cmp next
                             }
                         }
 
-                        if l1.len() <= l2.len() {
-                            Ordering::Less
-                        } else {
-                            Ordering::Greater
-                        }
+                        l1.len().cmp(&l2.len())
                     }
                 }
             }
-        }
+        });
+        return result
     }
 }
 
@@ -107,7 +129,7 @@ impl FromStr for Element {
 }
 
 #[derive(Debug)]
-pub struct ListPair(Element, Element);
+pub struct ListPair(pub Element, pub Element);
 
 impl FromIterator<Element> for ListPair {
     fn from_iter<T: IntoIterator<Item=Element>>(iter: T) -> Self {
@@ -124,12 +146,12 @@ impl ListPair {
 
     pub fn is_in_right_order(&self) -> bool {
         let ListPair(el1, el2) = self;
-        el1.is_in_right_order(el2) == Ordering::Less
+        el1.cmp(el2) == Ordering::Less
     }
 }
 
 #[derive(Debug)]
-pub struct AllListPairs(Vec<ListPair>);
+pub struct AllListPairs(pub Vec<ListPair>);
 
 impl FromStr for AllListPairs {
     type Err = Error;
@@ -159,13 +181,51 @@ mod test {
     use super::*;
 
     static EXAMPLE: &'static str = include_str!("../res/day13-lists_example.txt");
+    static EXAMPLE1: &'static str = include_str!("../res/day13-lists_example1.txt");
 
     #[test]
     fn test_parse_lists() {
-        for list_line in EXAMPLE.lines().filter(|l| !l.is_empty()) {
-            let list: Element = list_line.parse().unwrap();
-            println!("{:#?}", list);
+        let elements: Result<Vec<Element>, Error> = EXAMPLE.lines().filter(|l| !l.is_empty()).map(|l| l.parse()).collect();
+        let mut elements = elements.unwrap();
+
+        let div1 = Element::List(vec![Element::List(vec![Element::Value(2)])]);
+        let div2 = Element::List(vec![Element::List(vec![Element::Value(6)])]);
+
+        elements.push(div1.clone());
+        elements.push(div2.clone());
+
+        elements.sort();
+
+        let mut accu: usize = 1;
+
+        for (i, e) in elements.iter().enumerate() {
+            println!("{}: {}", i+1, e);
+            if e == &div1 || e == &div2 {
+                accu *= i+1;
+            }
         }
+
+        println!("accu {}", accu);
+        assert_eq!(accu, 140);
+    }
+
+    #[test]
+    fn test_parse_lists1() {
+        let elements: Result<Vec<Element>, Error> = EXAMPLE1.lines().filter(|l| !l.is_empty()).map(|l| l.parse()).collect();
+        let mut elements = elements.unwrap();
+
+        let div1 = Element::List(vec![Element::List(vec![Element::Value(2)])]);
+        let div2 = Element::List(vec![Element::List(vec![Element::Value(6)])]);
+
+        elements.sort();
+
+        let mut accu: usize = 1;
+
+        for (i, e) in elements.iter().enumerate() {
+            println!("{}: {}", i+1, e);
+        }
+
+        println!("accu {}", accu);
     }
 
     #[test]
@@ -178,8 +238,11 @@ mod test {
 
         for (i, pair) in pairs.iter().enumerate() {
             println!("{}: {}", i+1, pair.is_in_right_order());
+            println!("{}, {}", pair.0, pair.1);
         }
 
+        let code: usize = pairs.iter().enumerate().filter(|(_,e)| e.is_in_right_order()).map(|(i, _)| i+1).sum();
+        println!("code: {}", code);
     }
 
 }

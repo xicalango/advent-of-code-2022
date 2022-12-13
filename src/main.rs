@@ -77,6 +77,10 @@ fn main() {
     println!("day12");
     day12_main();
     println!();
+
+    println!("day13");
+    day13_main();
+    println!();
 }
 
 fn day1_main() {
@@ -308,5 +312,45 @@ fn day12_main() {
         let lowest = height_map.get_lowest_positions().iter().map(|(lx, ly)| dists[*ly as usize][*lx as usize]).filter(|v| v > &0).min().unwrap();
 
         println!("{}", lowest);
+    }
+}
+
+fn day13_main() {
+    use day13::*;
+
+    let input_data = include_str!("../res/day13-lists.txt");
+
+    let all_list_pairs: AllListPairs = input_data.parse().unwrap();
+
+    let AllListPairs(pairs) = all_list_pairs;
+
+    let code: usize = pairs.iter().enumerate()
+        .filter(|(_,e)| e.is_in_right_order())
+        .map(|(i, _)| i+1)
+        .sum();
+    println!("code: {}", code);
+
+    {
+        let elements: Result<Vec<Element>, Error> = input_data.lines().filter(|l| !l.is_empty()).map(|l| l.parse()).collect();
+        let mut elements = elements.unwrap();
+
+        let div1 = Element::List(vec![Element::List(vec![Element::Value(2)])]);
+        let div2 = Element::List(vec![Element::List(vec![Element::Value(6)])]);
+
+        elements.push(div1.clone());
+        elements.push(div2.clone());
+
+        elements.sort();
+
+        let mut accu: usize = 1;
+
+        for (i, e) in elements.iter().enumerate() {
+            println!("{}: {}", i+1, e);
+            if e == &div1 || e == &div2 {
+                accu *= i+1;
+            }
+        }
+
+        println!("accu {}", accu);
     }
 }
