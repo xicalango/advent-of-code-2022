@@ -36,9 +36,29 @@ mod test {
 
     #[test]
     fn test_parse_input() {
-        for line in EXAMPLE.lines().map(str::trim_end) {
-            let sender_beacon: SenderBeacon = line.parse().unwrap();
-            println!("{:#?}", sender_beacon);
+        let sender_beacons: Result<Vec<SenderBeacon>, Error> = EXAMPLE.lines().map(str::trim_end).map(str::parse).collect();
+        let sender_beacons = sender_beacons.unwrap();
+        println!("{:#?}", sender_beacons);
+
+        let mut counter = 0;
+
+        for SenderBeacon(s,b) in sender_beacons {
+            let dist = s.clone() | b.clone();
+            println!("{:?} - {:?} = {}", s, b, dist);
+
+            for x in -5..=26 {
+                let pos = PosVec::new(x, 10);
+                let x_dist = s.clone() | pos.clone();
+
+                println!("  {:?} - {:?} = {}", s, pos, x_dist);
+
+                if x_dist <= dist {
+                    counter += 1;
+                    break;
+                }
+            }
         }
+
+        println!("counter: {}", counter);
     }
 }

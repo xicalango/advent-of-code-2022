@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
-use std::ops::Mul;
+use std::ops::{Add, BitOr, Mul, Sub};
 use std::str::FromStr;
 
 use crate::Error;
@@ -125,5 +125,57 @@ impl<T> From<Vec2<T>> for (T, T) {
     fn from(vec: Vec2<T>) -> Self {
         let Vec2(x, y) = vec;
         (x, y)
+    }
+}
+
+impl<T: Add<Output=T>> Add for Vec2<T> {
+    type Output = Vec2<T>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let Vec2(lx, ly) = self;
+        let Vec2(rx, ry) = rhs;
+
+        Vec2(lx + rx, ly + ry)
+    }
+}
+
+impl<T: Sub<Output=T>> Sub for Vec2<T> {
+    type Output = Vec2<T>;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        let Vec2(lx, ly) = self;
+        let Vec2(rx, ry) = rhs;
+
+        Vec2(lx - rx, ly - ry)
+    }
+}
+
+impl<T: Sub<Output=T> + Add<Output=T> + Ord> Vec2<T> {
+
+    pub fn manhattan_dist(self, rhs: Vec2<T>) -> T {
+        let Vec2(lx, ly) = self;
+        let Vec2(rx, ry) = rhs;
+
+        let dist_x = if lx > rx {
+            lx - rx
+        } else {
+            rx - lx
+        };
+
+        let dist_y = if ly > ry {
+            ly - ry
+        } else {
+            ry - ly
+        };
+
+        dist_x + dist_y
+    }
+}
+
+impl<T: Sub<Output=T> + Add<Output=T> + Ord> BitOr for Vec2<T> {
+    type Output = T;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        self.manhattan_dist(rhs)
     }
 }
