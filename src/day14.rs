@@ -3,77 +3,18 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use crate::day14::WorldElement::*;
 use crate::Error;
+pub use crate::utils::Vector2;
+pub use crate::utils::Vec2;
 
 pub type Position = u32;
 
-#[derive(Default, Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Vec2(pub Position, pub Position);
-
-pub trait Vector2<T> {
-    fn get_x(&self) -> &T;
-    fn get_y(&self) -> &T;
-
-    fn set_x(&mut self, x: T);
-    fn set_y(&mut self, y: T);
-}
-
-impl Vector2<Position> for Vec2 {
-    fn get_x(&self) -> &Position {
-        let Vec2(x, _) = self;
-        x
-    }
-
-    fn get_y(&self) -> &Position {
-        let Vec2(_, y) = self;
-        y
-    }
-
-    fn set_x(&mut self, x: Position) {
-        let Vec2(_, y) = self;
-        *self = Vec2(x, *y)
-    }
-
-    fn set_y(&mut self, y: Position) {
-        let Vec2(x, _) = self;
-        *self = Vec2(*x, y)
-    }
-}
-
-impl FromStr for Vec2 {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (x, y) = s.split_once(",").ok_or(Error(format!("invalid coor: {}", s)))?;
-        Ok(Vec2(x.parse()?, y.parse()?))
-    }
-}
-
-impl Vec2 {
-    pub fn product(&self) -> Position {
-        let Vec2(x, y) = self;
-        x * y
-    }
-}
-
-impl From<(Position, Position)> for Vec2 {
-    fn from(tuple: (Position, Position)) -> Self {
-        let (x,y) = tuple;
-        Vec2(x, y)
-    }
-}
-
-impl From<Vec2> for (Position, Position) {
-    fn from(vec: Vec2) -> Self {
-        let Vec2(x, y) = vec;
-        (x, y)
-    }
-}
+pub type PosVec = Vec2<Position>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Line(Vec2, Vec2);
+pub struct Line(PosVec, PosVec);
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
-pub struct Box(Vec2, Vec2);
+pub struct Box(PosVec, PosVec);
 
 impl Box {
 
@@ -81,18 +22,18 @@ impl Box {
         Box::default()
     }
 
-    pub fn new_with_dimension(top_left: Vec2, bottom_right: Vec2) -> Box {
+    pub fn new_with_dimension(top_left: PosVec, bottom_right: PosVec) -> Box {
         Box(top_left, bottom_right)
     }
 
-    pub fn new_with_size(top_left: Vec2, size: Vec2) -> Box {
+    pub fn new_with_size(top_left: PosVec, size: PosVec) -> Box {
         let Vec2(x, y) = top_left;
         let Vec2(sx, sy) = size;
 
         Box(Vec2(x, y), Vec2(x + sx, y + sy))
     }
 
-    pub fn size(&self) -> Vec2 {
+    pub fn size(&self) -> PosVec {
         let Box(Vec2(sx, sy), Vec2(ex, ey)) = self;
         Vec2(ex - sx, ey - sy)
     }
@@ -114,8 +55,8 @@ impl FromStr for LineRow {
         while let Some(cur_coor) = cur {
             let next = split.next();
             if let Some(next_coor) = next {
-                let cur_coor: Vec2 = cur_coor.parse()?;
-                let next_coor: Vec2 = next_coor.parse()?;
+                let cur_coor: PosVec = cur_coor.parse()?;
+                let next_coor: PosVec = next_coor.parse()?;
                 result.push(Line(cur_coor, next_coor));
             }
             cur = next;
@@ -128,24 +69,24 @@ impl FromStr for LineRow {
 pub trait BoundingBox {
     fn get_bounds(&self) -> Box;
 
-    fn get_top_left(&self) -> Vec2 {
+    fn get_top_left(&self) -> PosVec {
         self.get_bounds().get_top_left()
     }
 
-    fn get_top_right(&self) -> Vec2 {
+    fn get_top_right(&self) -> PosVec {
         self.get_bounds().get_top_right()
     }
 
-    fn get_bottom_left(&self) -> Vec2 {
+    fn get_bottom_left(&self) -> PosVec {
         self.get_bounds().get_bottom_left()
     }
 
-    fn get_bottom_right(&self) -> Vec2 {
+    fn get_bottom_right(&self) -> PosVec {
         self.get_bounds().get_bottom_right()
     }
 }
 
-impl BoundingBox for Vec2 {
+impl BoundingBox for PosVec {
     fn get_bounds(&self) -> Box {
         Box(self.clone(), self.clone())
     }
@@ -169,23 +110,23 @@ impl BoundingBox for Box {
         self.clone()
     }
 
-    fn get_top_left(&self) -> Vec2 {
+    fn get_top_left(&self) -> PosVec {
         self.0.clone()
     }
 
-    fn get_top_right(&self) -> Vec2 {
+    fn get_top_right(&self) -> PosVec {
         let Box(Vec2(_, sy), Vec2(ex, _)) = self;
 
         Vec2(*ex, *sy)
     }
 
-    fn get_bottom_left(&self) -> Vec2 {
+    fn get_bottom_left(&self) -> PosVec {
         let Box(Vec2(sx, _), Vec2(_, ey)) = self;
 
         Vec2(*sx, *ey)
     }
 
-    fn get_bottom_right(&self) -> Vec2 {
+    fn get_bottom_right(&self) -> PosVec {
         self.1.clone()
     }
 
@@ -244,14 +185,14 @@ impl Display for WorldElement {
 
 #[derive(Debug)]
 pub struct World {
-    size: Vec2,
+    size: PosVec,
     buffer: Vec<WorldElement>,
-    insert_pos: Vec2,
+    insert_pos: PosVec,
 }
 
 impl World {
 
-    pub fn new(size: Vec2, insert_pos: Vec2) -> World {
+    pub fn new(size: PosVec, insert_pos: PosVec) -> World {
         let Vec2(width, height) = &size;
         let buffer =vec![Nothing; *width as usize * *height as usize];
 
@@ -287,20 +228,20 @@ impl World {
         }
     }
 
-    fn insert_wall_at(&mut self, pos: &Vec2) {
+    fn insert_wall_at(&mut self, pos: &PosVec) {
         self.insert_at(pos, Wall);
     }
 
-    fn insert_sand_at(&mut self, pos: &Vec2) {
+    fn insert_sand_at(&mut self, pos: &PosVec) {
         self.insert_at(pos, FixedSand);
     }
 
-    fn insert_at(&mut self, pos: &Vec2, element: WorldElement) {
+    fn insert_at(&mut self, pos: &PosVec, element: WorldElement) {
         let buffer_pos = self.vec2_to_buffer_pos(pos);
         self.buffer[buffer_pos] = element;
     }
 
-    fn vec2_to_buffer_pos(&self, pos: &Vec2) -> usize {
+    fn vec2_to_buffer_pos(&self, pos: &PosVec) -> usize {
         let Vec2(x, y) = pos;
         let Vec2(width, height) = &self.size;
 
@@ -310,7 +251,7 @@ impl World {
         (*y * width + *x) as usize
     }
 
-    pub fn is_in_bounds(&self, pos: &Vec2) -> bool {
+    pub fn is_in_bounds(&self, pos: &PosVec) -> bool {
         let Vec2(x, y) = pos;
         let Vec2(width, height) = &self.size;
 
@@ -328,12 +269,12 @@ impl World {
         }
     }
 
-    pub fn get_element_at(&self, pos: &Vec2) -> &WorldElement {
+    pub fn get_element_at(&self, pos: &PosVec) -> &WorldElement {
         let buffer_pos = self.vec2_to_buffer_pos(&pos);
         &self.buffer[buffer_pos]
     }
 
-    pub fn try_get_element_at(&self, pos: &Vec2) -> Option<&WorldElement> {
+    pub fn try_get_element_at(&self, pos: &PosVec) -> Option<&WorldElement> {
         if !self.is_in_bounds(&pos) {
             return None;
         }
@@ -341,7 +282,7 @@ impl World {
         Some(self.get_element_at(pos))
     }
 
-    pub fn drop_sand(&mut self) -> Vec2 {
+    pub fn drop_sand(&mut self) -> PosVec {
         let mut cur_pos = self.insert_pos.clone();
 
         while let Some(new_pos) = self.find_next_position(&cur_pos) {
@@ -353,7 +294,7 @@ impl World {
         cur_pos
     }
 
-    pub fn find_next_position(&self, pos: &Vec2) -> Option<Vec2> {
+    pub fn find_next_position(&self, pos: &PosVec) -> Option<PosVec> {
         let Vec2(x, y) = pos;
         let try_position = Vec2(*x, y+1);
         if self.try_get_element_at(&try_position) == Some(&Nothing) {
@@ -385,7 +326,7 @@ impl<'a> Display for ViewPort<'a> {
         for y in *sy..=*ey {
             for x in *sx..=*ex {
                 let cur = Vec2(x, y);
-                let element = self.world.try_get_element_at(&cur).unwrap_or(&WorldElement::Nothing);
+                let element = self.world.try_get_element_at(&cur).unwrap_or(&Nothing);
                 write!(f, "{}", element)?;
             }
             write!(f, "\n")?;
@@ -398,7 +339,7 @@ impl<'a> Display for ViewPort<'a> {
 
 #[cfg(test)]
 mod test {
-
+    use crate::utils::Vector2;
     use super::*;
 
     static EXAMPLE : &'static str = include_str!("../res/day14-paths_example.txt");
