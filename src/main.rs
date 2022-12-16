@@ -21,6 +21,7 @@ pub mod day15;
 
 use std::num::ParseIntError;
 use bench::Bench;
+use crate::day15::BeaconFinder;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -52,6 +53,7 @@ fn main() {
     bench.run_day(12, day12_main);
     bench.run_day(13, day13_main);
     bench.run_day(14, day14_main);
+    bench.run_day(15, day15_main);
 
     bench.print_times();
     println!();
@@ -378,4 +380,16 @@ fn day14_main() {
 
         println!("rest: {}", counter);
     }
+}
+
+fn day15_main() {
+    use day15::*;
+
+    let input_data = include_str!("../res/day15-beacons.txt");
+    let sensor_beacons: Result<Vec<SensorBeacon>, Error> = input_data.lines().map(str::trim_end).map(str::parse).collect();
+    let sensor_beacons = sensor_beacons.unwrap();
+
+    let beacon_finder = BeaconFinder::new(&sensor_beacons);
+    let count = beacon_finder.find_impossible_beacon_positions(2000000);
+    println!("count {}", count)
 }
