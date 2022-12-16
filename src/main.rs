@@ -1,3 +1,4 @@
+extern crate core;
 
 mod bench;
 pub mod day1;
@@ -47,6 +48,7 @@ fn main() {
     bench.run_day(11, day11_main);
     bench.run_day(12, day12_main);
     bench.run_day(13, day13_main);
+    bench.run_day(14, day14_main);
 
     bench.print_times();
     println!();
@@ -323,5 +325,54 @@ fn day13_main() {
         }
 
         println!("accu {}", accu);
+    }
+}
+
+fn day14_main() {
+    use day14::*;
+
+    let input_data = include_str!("../res/day14-paths.txt");
+
+    let rows: Result<Vec<LineRow>, Error> = input_data.lines().map(str::trim_end).map(|l| l.parse::<LineRow>()).collect();
+    let rows = rows.unwrap();
+    let bounding_box: Box = rows.iter().collect();
+    let Vec2(bx, by) = bounding_box.get_bottom_right();
+    {
+        let stop_line = by;
+
+        let mut world = World::new(Vec2(bx + 1, by + 1), Vec2(500, 0));
+        world.insert_lines(&rows);
+        println!("{}", world.view_port());
+
+        let mut counter: usize = 0;
+
+        loop {
+            let end_pos = world.drop_sand();
+            if end_pos.get_y() >= &stop_line {
+                break;
+            }
+            counter += 1;
+        }
+
+        println!("{}", world.view_port());
+        println!("rest: {}", counter);
+    }
+
+    {
+        let insert_pos = Vec2(500, 0);
+        let mut world = World::new(Vec2(bx * 2, by + 2), insert_pos.clone());
+        world.insert_lines(&rows);
+
+        let mut counter: usize = 0;
+
+        loop {
+            counter += 1;
+            let end_pos = world.drop_sand();
+            if end_pos == insert_pos {
+                break;
+            }
+        }
+
+        println!("rest: {}", counter);
     }
 }

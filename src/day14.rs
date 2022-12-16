@@ -1,12 +1,43 @@
 use std::cmp::{max, min};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use crate::day14::WorldElement::*;
 use crate::Error;
 
-type Position = u32;
+pub type Position = u32;
 
 #[derive(Default, Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Vec2(Position, Position);
+pub struct Vec2(pub Position, pub Position);
+
+pub trait Vector2<T> {
+    fn get_x(&self) -> &T;
+    fn get_y(&self) -> &T;
+
+    fn set_x(&mut self, x: T);
+    fn set_y(&mut self, y: T);
+}
+
+impl Vector2<Position> for Vec2 {
+    fn get_x(&self) -> &Position {
+        let Vec2(x, _) = self;
+        x
+    }
+
+    fn get_y(&self) -> &Position {
+        let Vec2(_, y) = self;
+        y
+    }
+
+    fn set_x(&mut self, x: Position) {
+        let Vec2(_, y) = self;
+        *self = Vec2(x, *y)
+    }
+
+    fn set_y(&mut self, y: Position) {
+        let Vec2(x, _) = self;
+        *self = Vec2(*x, y)
+    }
+}
 
 impl FromStr for Vec2 {
     type Err = Error;
@@ -16,8 +47,6 @@ impl FromStr for Vec2 {
         Ok(Vec2(x.parse()?, y.parse()?))
     }
 }
-
-
 
 impl Vec2 {
     pub fn product(&self) -> Position {
@@ -194,7 +223,7 @@ impl BoundingBox for LineRow {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum WorldElement {
     Nothing,
     Wall,
@@ -205,10 +234,10 @@ pub enum WorldElement {
 impl Display for WorldElement {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            WorldElement::Nothing => write!(f, "."),
-            WorldElement::Wall => write!(f, "#"),
-            WorldElement::NewSand => write!(f, "+"),
-            WorldElement::FixedSand => write!(f, "o"),
+            Nothing => write!(f, "."),
+            Wall => write!(f, "#"),
+            NewSand => write!(f, "+"),
+            FixedSand => write!(f, "o"),
         }
     }
 }
@@ -217,17 +246,19 @@ impl Display for WorldElement {
 pub struct World {
     size: Vec2,
     buffer: Vec<WorldElement>,
+    insert_pos: Vec2,
 }
 
 impl World {
 
-    pub fn new(size: Vec2) -> World {
+    pub fn new(size: Vec2, insert_pos: Vec2) -> World {
         let Vec2(width, height) = &size;
-        let buffer =vec![WorldElement::Nothing; *width as usize * *height as usize];
+        let buffer =vec![Nothing; *width as usize * *height as usize];
 
         World {
             size,
             buffer,
+            insert_pos,
         }
     }
 
@@ -257,8 +288,16 @@ impl World {
     }
 
     fn insert_wall_at(&mut self, pos: &Vec2) {
+        self.insert_at(pos, Wall);
+    }
+
+    fn insert_sand_at(&mut self, pos: &Vec2) {
+        self.insert_at(pos, FixedSand);
+    }
+
+    fn insert_at(&mut self, pos: &Vec2, element: WorldElement) {
         let buffer_pos = self.vec2_to_buffer_pos(pos);
-        self.buffer[buffer_pos] = WorldElement::Wall;
+        self.buffer[buffer_pos] = element;
     }
 
     fn vec2_to_buffer_pos(&self, pos: &Vec2) -> usize {
@@ -279,9 +318,13 @@ impl World {
     }
 
     pub fn view_port(&self) -> ViewPort {
+        self.view_port_at(&Box::new_with_dimension(Vec2(494, 0), Vec2(503, 9)))
+    }
+
+    pub fn view_port_at(&self, view_port: &Box) -> ViewPort {
         ViewPort {
             world: self,
-            view_port: Box::new_with_dimension(Vec2(494, 0), Vec2(503, 9)),
+            view_port: view_port.clone(),
         }
     }
 
@@ -298,10 +341,35 @@ impl World {
         Some(self.get_element_at(pos))
     }
 
-    pub fn drop_sand(&mut self, insert_pos: &Vec2) -> bool {
-        todo!()
+    pub fn drop_sand(&mut self) -> Vec2 {
+        let mut cur_pos = self.insert_pos.clone();
+
+        while let Some(new_pos) = self.find_next_position(&cur_pos) {
+            cur_pos = new_pos;
+        }
+
+        self.insert_sand_at(&cur_pos);
+
+        cur_pos
     }
 
+    pub fn find_next_position(&self, pos: &Vec2) -> Option<Vec2> {
+        let Vec2(x, y) = pos;
+        let try_position = Vec2(*x, y+1);
+        if self.try_get_element_at(&try_position) == Some(&Nothing) {
+            return Some(try_position);
+        }
+        let try_position = Vec2(x-1, y+1);
+        if self.try_get_element_at(&try_position) == Some(&Nothing) {
+            return Some(try_position);
+        }
+        let try_position = Vec2(x+1, y+1);
+        if self.try_get_element_at(&try_position) == Some(&Nothing) {
+            return Some(try_position);
+        }
+
+        None
+    }
 }
 
 #[derive(Debug)]
@@ -344,10 +412,62 @@ mod test {
         let bounding_box: Box = rows.iter().collect();
         println!("{:?}", bounding_box);
 
-        let mut world = World::new(Vec2(504, 10));
+        let mut world = World::new(Vec2(504, 10), Vec2(500, 0));
         world.insert_lines(&rows);
         let view_port = world.view_port();
         println!("{}", view_port);
     }
 
+    #[test]
+    fn test_drop() {
+        let rows: Result<Vec<LineRow>, Error> = EXAMPLE.lines().map(str::trim_end).map(|l| l.parse::<LineRow>()).collect();
+        let rows = rows.unwrap();
+        let bounding_box: Box = rows.iter().collect();
+        let Vec2(bx, by) = bounding_box.get_bottom_right();
+        let stop_line = by;
+
+        let mut world = World::new(Vec2(bx+1, by+1), Vec2(500, 0));
+        world.insert_lines(&rows);
+        println!("{}", world.view_port());
+
+        let mut counter = 0;
+
+        loop {
+            let end_pos = world.drop_sand();
+            if end_pos.get_y() >= &stop_line {
+                break;
+            }
+            counter+=1;
+        }
+
+        println!("{}", world.view_port());
+        println!("rest: {}", counter);
+    }
+
+    #[test]
+    fn test_drop_part2() {
+        let rows: Result<Vec<LineRow>, Error> = EXAMPLE.lines().map(str::trim_end).map(|l| l.parse::<LineRow>()).collect();
+        let rows = rows.unwrap();
+        let bounding_box: Box = rows.iter().collect();
+        let Vec2(bx, by) = bounding_box.get_bottom_right();
+
+        let insert_pos = Vec2(500, 0);
+        let mut world = World::new(Vec2(bx+20, by+2), insert_pos.clone());
+        world.insert_lines(&rows);
+        let dimension = Box::new_with_dimension(Vec2(450, 0), Vec2(550, 15));
+        println!("{}", world.view_port_at(&dimension));
+
+        let mut counter = 0;
+
+        loop {
+            counter+=1;
+            let end_pos = world.drop_sand();
+            if end_pos == insert_pos {
+                break;
+            }
+        }
+
+        println!("{}", world.view_port_at(&dimension));
+        println!("rest: {}", counter);
+    }
 }
