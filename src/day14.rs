@@ -339,7 +339,7 @@ impl<'a> Display for ViewPort<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::utils::Vector2;
+    use crate::utils::vec2::Vector2;
     use super::*;
 
     static EXAMPLE : &'static str = include_str!("../res/day14-paths_example.txt");
