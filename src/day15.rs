@@ -1,10 +1,13 @@
 use std::str::FromStr;
 use std::cmp::{max, min};
 use std::collections::HashSet;
+use std::ops::RangeInclusive;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread;
 use crate::{Error, Scored};
+
+use crate::utils::ranges::RangeExt;
 
 pub use crate::utils::vec2::Vector2;
 pub use crate::utils::vec2::Vec2;
@@ -48,6 +51,51 @@ impl FromStr for SensorBeacon {
     }
 }
 
+#[derive(Debug, Default)]
+struct RangeCollector {
+    ranges: Vec<RangeInclusive<Pos>>,
+}
+
+impl RangeCollector {
+
+    fn add_range(&mut self, add_range: RangeInclusive<Pos>) {
+        let mut add_range = Some(add_range);
+
+        for range in self.ranges.iter_mut() {
+            let cur_add_range = add_range.take();
+
+            if cur_add_range.is_none() {
+                break;
+            }
+
+            let cur_add_range = cur_add_range.unwrap();
+
+            println!("trying to add range {:?} to {:?}", cur_add_range, range);
+            add_range = range.join_mut(cur_add_range);
+            println!("result: {:?}/{:?}", range, add_range);
+        }
+
+        if let Some(range) = add_range {
+            self.ranges.push(range);
+        }
+    }
+
+    pub fn ranges(&self) -> &Vec<RangeInclusive<Pos>> {
+        &self.ranges
+    }
+
+}
+
+impl FromIterator<RangeInclusive<Pos>> for RangeCollector {
+    fn from_iter<T: IntoIterator<Item=RangeInclusive<Pos>>>(iter: T) -> Self {
+        let mut range_collector = RangeCollector::default();
+        for item in iter {
+            range_collector.add_range(item);
+        }
+        range_collector
+    }
+}
+
 pub struct BeaconFinder<'a> {
     sensor_beacons: &'a Vec<SensorBeacon>,
 }
@@ -61,12 +109,10 @@ impl<'a> BeaconFinder<'a> {
 
     pub fn find_impossible_beacon(&self, row: Pos) -> u64 {
 
-        let mut positions = HashSet::new();
-
-        let mut ranges = Vec::new();
+        let mut range_collector = RangeCollector::default();
 
         for sb in self.sensor_beacons {
-            let SensorBeacon(sensor, beacon) = sb;
+            let SensorBeacon(sensor, _) = sb;
 
             let dist = sb.get_distance();
             let dist_to_row = (row - sensor.get_y()).abs();
@@ -77,17 +123,20 @@ impl<'a> BeaconFinder<'a> {
 
             let remaining_dist = dist - dist_to_row;
 
-            ranges.push((sensor.get_x()-remaining_dist, sensor.get_x()+remaining_dist));
-
-            for i in sensor.get_x()-remaining_dist..=sensor.get_x()+remaining_dist {
-                if beacon.get_x() == &i && beacon.get_y() == &row {
-                    continue
-                }
-                positions.insert(i);
-            }
+            let range = sensor.get_x() - remaining_dist..=sensor.get_x() + remaining_dist;
+            println!("new range: {:?}", range);
+            range_collector.add_range(range);
         }
 
-        positions.len() as u64
+        println!("{:?}", range_collector);
+
+        // for (rs, re) in ranges {
+        //     for i in rs..re {
+        //         positions.insert(i);
+        //     }
+        // }
+
+        0
     }
 
     pub fn find_impossible_beacon_positions<const N_THREADS: Pos>(&self, row: Pos, range_adj: Pos) -> u64 {
