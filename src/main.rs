@@ -21,7 +21,6 @@ pub mod day15;
 
 use std::num::ParseIntError;
 use bench::Bench;
-use crate::day15::BeaconFinder;
 
 #[derive(Debug)]
 pub struct Error(String);
@@ -390,6 +389,6 @@ fn day15_main() {
     let sensor_beacons = sensor_beacons.unwrap();
 
     let beacon_finder = BeaconFinder::new(&sensor_beacons);
-    let count = beacon_finder.find_impossible_beacon_positions(2000000);
+    let count = beacon_finder.find_impossible_beacon_positions::<4>(2_000_000, 2_000_000);
     println!("count {}", count)
 }

@@ -1,5 +1,8 @@
 use std::str::FromStr;
 use std::cmp::{max, min};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::thread;
 use crate::Error;
 
 use crate::utils::Vector2;
@@ -49,33 +52,64 @@ impl<'a> BeaconFinder<'a> {
         }
     }
 
-    pub fn find_impossible_beacon_positions(&self, row: Pos) -> u64 {
+    pub fn find_impossible_beacon_positions<const N_THREADS: Pos>(&self, row: Pos, range_adj: Pos) -> u64 {
         let min_x = self.sensor_beacons.iter().map(|SensorBeacon(sp, bp)| min(sp.get_x(), bp.get_x())).min().unwrap();
         let max_x = self.sensor_beacons.iter().map(|SensorBeacon(sp, bp)| max(sp.get_x(), bp.get_x())).max().unwrap();
 
-        let mut counter = 0;
+        let min_x = min_x - range_adj;
+        let max_x = max_x + range_adj;
+        let full_range = max_x - min_x;
+        let batch_size = full_range/N_THREADS;
 
-        let mut pos = PosVec::new(0, row);
+        let counter = Arc::new(AtomicU64::new(0));
+        let beacons = Arc::new(self.sensor_beacons);
 
-        for x in min_x-2000000..=max_x+2000000 {
-            pos.set_x(x);
+        thread::scope(|scope| {
 
-            let any_beacon = self.sensor_beacons.iter()
-                .any(|sb@SensorBeacon(s, b)| {
-                    if &pos == b {
-                        return false;
+            let mut threads = Vec::new();
+            for ti in 0..N_THREADS {
+                let counter_clone = counter.clone();
+                let beacons_clone = beacons.clone();
+                let row_clone = row.clone();
+
+                let thread_start_idx = (ti * batch_size) + min_x;
+                let thread_end_idx = thread_start_idx + batch_size;
+
+                println!("thread {} from {} to {}", ti, thread_start_idx, thread_end_idx);
+
+                let thread = scope.spawn(move || {
+                    let mut local_counter = 0;
+
+                    for x in thread_start_idx..thread_end_idx {
+                        let pos = PosVec::new(x, row_clone);
+
+                        let any_beacon = beacons_clone.iter()
+                            .any(|sb @ SensorBeacon(s, b)| {
+                                if &pos == b {
+                                    return false;
+                                }
+                                let dist = sb.get_distance();
+                                let x_dist = s.clone() | pos.clone();
+                                x_dist <= dist
+                            });
+
+                        if any_beacon {
+                            local_counter += 1;
+                        }
                     }
-                    let dist = sb.get_distance();
-                    let x_dist = s.clone() | pos.clone();
-                    x_dist <= dist
+
+                    counter_clone.fetch_add(local_counter, Ordering::Relaxed);
                 });
 
-            if any_beacon {
-                counter += 1;
+                threads.push(thread);
             }
-        }
 
-        counter
+            for thread in threads {
+                thread.join().unwrap();
+            }
+        });
+
+        counter.load(Ordering::Relaxed)
     }
 
 }
@@ -93,7 +127,7 @@ mod test {
         println!("{:?}", sensor_beacons);
 
         let beacon_finder = BeaconFinder::new(&sensor_beacons);
-        let count = beacon_finder.find_impossible_beacon_positions(10);
+        let count = beacon_finder.find_impossible_beacon_positions::<4>(10, 10);
         println!("count: {}", count);
         assert_eq!(count, 26);
     }
