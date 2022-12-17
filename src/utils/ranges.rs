@@ -1,4 +1,4 @@
-use std::ops::RangeInclusive;
+use std::ops::{RangeInclusive, Sub};
 
 pub trait RangeExt {
 
@@ -10,6 +10,8 @@ pub trait RangeExt {
 
     fn intersect(&self, other: &Self) -> Option<Self> where Self: Sized;
 
+    fn subtract(&self, other: &Self) -> Option<Self> where Self: Sized;
+
     fn join(&self, other: &Self) -> (Self, Option<Self>) where Self: Sized;
 
     fn join_mut(&mut self, other: Self) -> Option<Self> where Self: Sized {
@@ -17,7 +19,6 @@ pub trait RangeExt {
         *self = joined;
         reminder
     }
-
 }
 
 impl<T> RangeExt for RangeInclusive<T>
@@ -41,6 +42,21 @@ where T: Ord + Copy
             Some(*max_start..=*min_end)
         } else {
             None
+        }
+    }
+
+    fn subtract(&self, rhs: &Self) -> Option<Self> where Self: Sized {
+        match self.intersect(rhs) {
+            None => Some(self.clone()),
+            Some(intersection) => {
+                if self == &intersection {
+                    None
+                } else if self.start() == intersection.start() {
+                    Some(*intersection.end()..=*self.end())
+                } else {
+                    Some(*self.start()..=*intersection.start())
+                }
+            }
         }
     }
 
@@ -68,5 +84,19 @@ where T: Ord + Copy
         } else {
             (self.clone(), Some(other.clone()))
         }
+    }
+}
+
+pub trait RangeLength {
+    type Output;
+    fn len(&self) -> Self::Output;
+}
+
+impl<T> RangeLength for RangeInclusive<T>
+where T: Sub<T, Output=T> + Copy {
+    type Output = T;
+
+    fn len(&self) -> Self::Output {
+        *self.end() - *self.start()
     }
 }

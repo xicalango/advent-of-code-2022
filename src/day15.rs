@@ -1,13 +1,12 @@
 use std::str::FromStr;
 use std::cmp::{max, min};
-use std::collections::HashSet;
 use std::ops::RangeInclusive;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread;
 use crate::{Error, Scored};
 
-use crate::utils::ranges::RangeExt;
+use crate::utils::ranges::{RangeExt, RangeLength};
 
 pub use crate::utils::vec2::Vector2;
 pub use crate::utils::vec2::Vec2;
@@ -61,6 +60,24 @@ impl RangeCollector {
     fn add_range(&mut self, add_range: RangeInclusive<Pos>) {
         let mut add_range = Some(add_range);
 
+        println!("range to add: {:?} current ranges: {:?}", add_range, self.ranges);
+        for range in self.ranges.iter() {
+            let cur_add_range = add_range.take();
+
+            if cur_add_range.is_none() {
+                break;
+            }
+
+            let cur_add_range = cur_add_range.unwrap();
+
+            add_range = cur_add_range.subtract(range);
+        }
+        println!("range to add: {:?} current ranges: {:?}", add_range, self.ranges);
+
+        if add_range.is_none() {
+            return;
+        }
+
         for range in self.ranges.iter_mut() {
             let cur_add_range = add_range.take();
 
@@ -70,14 +87,15 @@ impl RangeCollector {
 
             let cur_add_range = cur_add_range.unwrap();
 
-            println!("trying to add range {:?} to {:?}", cur_add_range, range);
             add_range = range.join_mut(cur_add_range);
-            println!("result: {:?}/{:?}", range, add_range);
         }
+
+        println!("range to add: {:?} current ranges: {:?}", add_range, self.ranges);
 
         if let Some(range) = add_range {
             self.ranges.push(range);
         }
+        println!("final ranges: {:?}", self.ranges);
     }
 
     pub fn ranges(&self) -> &Vec<RangeInclusive<Pos>> {
@@ -130,13 +148,9 @@ impl<'a> BeaconFinder<'a> {
 
         println!("{:?}", range_collector);
 
-        // for (rs, re) in ranges {
-        //     for i in rs..re {
-        //         positions.insert(i);
-        //     }
-        // }
+        let len: Pos = range_collector.ranges().iter().map(|r| r.len()).sum();
 
-        0
+        len as u64
     }
 
     pub fn find_impossible_beacon_positions<const N_THREADS: Pos>(&self, row: Pos, range_adj: Pos) -> u64 {
