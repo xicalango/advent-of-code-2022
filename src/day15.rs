@@ -6,8 +6,8 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread;
 use crate::{Error, Scored};
 
-pub use crate::utils::Vector2;
-pub use crate::utils::Vec2;
+pub use crate::utils::vec2::Vector2;
+pub use crate::utils::vec2::Vec2;
 
 pub type Pos = i64;
 pub type PosVec = Vec2<Pos>;
@@ -77,7 +77,7 @@ impl<'a> BeaconFinder<'a> {
 
             let remaining_dist = dist - dist_to_row;
 
-            ranges.push((sensor.get_x()-remaining_dist..=sensor.get_x()+remaining_dist));
+            ranges.push((sensor.get_x()-remaining_dist, sensor.get_x()+remaining_dist));
 
             for i in sensor.get_x()-remaining_dist..=sensor.get_x()+remaining_dist {
                 if beacon.get_x() == &i && beacon.get_y() == &row {

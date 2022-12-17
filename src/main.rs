@@ -19,17 +19,8 @@ pub mod day13;
 pub mod day14;
 pub mod day15;
 
-use std::num::ParseIntError;
 use bench::Bench;
-
-#[derive(Debug)]
-pub struct Error(String);
-
-impl From<ParseIntError> for Error {
-    fn from(pie: ParseIntError) -> Self {
-        Error(pie.to_string())
-    }
-}
+use crate::utils::Error;
 
 pub trait Scored {
     fn get_score(&self) -> u64;
@@ -386,7 +377,7 @@ fn day15_main() {
 
     let input_data = include_str!("../res/day15-beacons.txt");
     let sensor_beacons: Result<Vec<SensorBeacon>, Error> = input_data.lines().map(str::trim_end).map(str::parse).collect();
-    let mut sensor_beacons = sensor_beacons.unwrap();
+    let sensor_beacons = sensor_beacons.unwrap();
 
     let beacon_finder = BeaconFinder::new(&sensor_beacons);
     let count = beacon_finder.find_impossible_beacon(2_000_000);

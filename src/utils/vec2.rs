@@ -2,8 +2,7 @@ use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use std::ops::{Add, BitOr, Mul, Sub};
 use std::str::FromStr;
-
-use crate::Error;
+use crate::utils::Error;
 
 pub struct Vec2<T>(pub T, pub T);
 
@@ -179,3 +178,4 @@ impl<T: Sub<Output=T> + Add<Output=T> + Ord> BitOr for Vec2<T> {
         self.manhattan_dist(rhs)
     }
 }
+

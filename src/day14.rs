@@ -3,8 +3,8 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use crate::day14::WorldElement::*;
 use crate::Error;
-pub use crate::utils::Vector2;
-pub use crate::utils::Vec2;
+pub use crate::utils::vec2::Vector2;
+pub use crate::utils::vec2::Vec2;
 
 pub type Position = u32;
 
