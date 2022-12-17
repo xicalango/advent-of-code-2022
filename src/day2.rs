@@ -97,7 +97,7 @@ impl RPS {
 }
 
 impl Scored for RPS {
-    fn get_score(&self) -> u32 {
+    fn get_score(&self) -> u64 {
         match *self {
             RPS::Rock => 1,
             RPS::Paper => 2,
@@ -133,7 +133,7 @@ impl FromStr for StrategyGuide {
 }
 
 impl Scored for (RPS, RPS) {
-    fn get_score(&self) -> u32 {
+    fn get_score(&self) -> u64 {
         let (opponent, my) = self;
 
         let winner_score = if my == opponent {
@@ -193,9 +193,9 @@ impl StrategyGuide {
 }
 
 impl Scored for Game {
-    fn get_score(&self) -> u32 {
+    fn get_score(&self) -> u64 {
         let Game(scores) = &self;
-        scores.iter().map(|v| v.get_score()).sum::<u32>()
+        scores.iter().map(|v| v.get_score()).sum::<u64>()
     }
 }
 

@@ -32,7 +32,7 @@ impl From<ParseIntError> for Error {
 }
 
 pub trait Scored {
-    fn get_score(&self) -> u32;
+    fn get_score(&self) -> u64;
 }
 
 fn main() {

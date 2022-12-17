@@ -20,10 +20,10 @@ pub fn find_duplicate(line: &str) -> char {
 }
 
 impl Scored for char {
-    fn get_score(&self) -> u32 {
+    fn get_score(&self) -> u64 {
         let ascii_value = *self as u8;
 
-        let normalized_value = (ascii_value - ('A' as u8)) as u32;
+        let normalized_value = (ascii_value - ('A' as u8)) as u64;
 
         if normalized_value < 26 {
             normalized_value + 27
@@ -67,7 +67,7 @@ fn chunked_iteration<'a>(lines: &mut impl Iterator<Item = &'a str>) -> Vec<char>
 pub struct Day3Input(pub &'static str);
 
 impl Scored for Day3Input {
-    fn get_score(&self) -> u32 {
+    fn get_score(&self) -> u64 {
         let Day3Input(input) = self;
         input.lines()
             .map(str::trim_end)
@@ -88,7 +88,7 @@ impl From<Day3Input> for Day3Chunked {
 }
 
 impl Scored for Day3Chunked {
-    fn get_score(&self) -> u32 {
+    fn get_score(&self) -> u64 {
         let Day3Chunked(input) = self;
         chunked_iteration(&mut input.lines()).iter()
             .map(|c| c.get_score())
@@ -105,7 +105,7 @@ mod test {
 
     #[test]
     fn test_find_duplicate() {
-        let scores: Vec<u32> = vec![16, 38, 42, 22, 20, 19];
+        let scores: Vec<u64> = vec![16, 38, 42, 22, 20, 19];
 
         let mut scores_it = scores.iter();
         for line in TEST_DATA.lines().map(str::trim_end) {

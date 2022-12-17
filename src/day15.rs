@@ -3,13 +3,20 @@ use std::cmp::{max, min};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
-use crate::Error;
+use crate::{Error, Scored};
 
 pub use crate::utils::Vector2;
 pub use crate::utils::Vec2;
 
 pub type Pos = i64;
 pub type PosVec = Vec2<Pos>;
+
+impl Scored for PosVec {
+    fn get_score(&self) -> u64 {
+        let Vec2(x, y) = self;
+        (x * 4_000_000 + y) as u64
+    }
+}
 
 #[derive(Debug)]
 pub struct SensorBeacon(pub PosVec, pub PosVec);
@@ -112,6 +119,31 @@ impl<'a> BeaconFinder<'a> {
         counter.load(Ordering::Relaxed)
     }
 
+    pub fn find_beacon_location(&self) -> PosVec {
+        for try_x in 0..=20 {
+            for try_y in 0..=20 {
+                let pos = PosVec::new(try_x, try_y);
+
+                let any_beacon = self.sensor_beacons.iter()
+                    .any(|sb @ SensorBeacon(s, b)| {
+                        if &pos == b {
+                            return true;
+                        }
+                        let dist = sb.get_distance();
+                        let x_dist = s.clone() | pos.clone();
+                        x_dist <= dist
+                    });
+
+                if any_beacon {
+                    continue;
+                } else {
+                    return pos;
+                }
+            }
+        }
+        panic!("no beacon");
+    }
+
 }
 
 #[cfg(test)]
@@ -125,12 +157,24 @@ mod test {
         let sensor_beacons: Result<Vec<SensorBeacon>, Error> = EXAMPLE.lines().map(str::trim_end).map(str::parse).collect();
         let sensor_beacons = sensor_beacons.unwrap();
 
-
         println!("{:?}", sensor_beacons);
 
         let beacon_finder = BeaconFinder::new(&sensor_beacons);
         let count = beacon_finder.find_impossible_beacon_positions::<4>(10, 10);
         println!("count: {}", count);
         assert_eq!(count, 26);
+    }
+
+    #[test]
+    fn test_part_2() {
+        let sensor_beacons: Result<Vec<SensorBeacon>, Error> = EXAMPLE.lines().map(str::trim_end).map(str::parse).collect();
+        let sensor_beacons = sensor_beacons.unwrap();
+
+        println!("{:?}", sensor_beacons);
+
+        let beacon_finder = BeaconFinder::new(&sensor_beacons);
+        let pos = beacon_finder.find_beacon_location();
+        println!("{:?}", pos);
+        assert_eq!(56000011, pos.get_score());
     }
 }
