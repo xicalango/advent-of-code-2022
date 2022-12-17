@@ -32,12 +32,12 @@ impl Bench {
         }
     }
 
-    pub fn print_slowest_days(&self) {
+    pub fn print_slowest_days<const N: usize>(&self) {
         let mut values: Vec<(&usize, &Duration)> = self.times.iter().collect();
         values.sort_by(|(_, d1), (_, d2)| d2.cmp(d1));
 
-        println!("3 slowest days:");
-        for (day, dur) in values.iter().take(3) {
+        println!("{} slowest days:", N);
+        for (day, dur) in values.iter().take(N) {
             println!("day{}: {:?}", day, dur);
         }
     }

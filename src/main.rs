@@ -58,7 +58,7 @@ fn main() {
     println!();
     bench.print_total_time();
     println!();
-    bench.print_slowest_days();
+    bench.print_slowest_days::<5>();
 }
 
 fn day1_main() {
@@ -386,7 +386,9 @@ fn day15_main() {
 
     let input_data = include_str!("../res/day15-beacons.txt");
     let sensor_beacons: Result<Vec<SensorBeacon>, Error> = input_data.lines().map(str::trim_end).map(str::parse).collect();
-    let sensor_beacons = sensor_beacons.unwrap();
+    let mut sensor_beacons = sensor_beacons.unwrap();
+
+    sensor_beacons.sort_by_key(|SensorBeacon(Vec2(_, y), _)| (y - 2_000_000).abs());
 
     let beacon_finder = BeaconFinder::new(&sensor_beacons);
     let count = beacon_finder.find_impossible_beacon_positions::<4>(2_000_000, 750_000);

@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use crate::Error;
 
-use crate::utils::Vector2;
-use crate::utils::Vec2;
+pub use crate::utils::Vector2;
+pub use crate::utils::Vec2;
 
 pub type Pos = i64;
 pub type PosVec = Vec2<Pos>;
@@ -124,6 +124,8 @@ mod test {
     fn test_parse_input() {
         let sensor_beacons: Result<Vec<SensorBeacon>, Error> = EXAMPLE.lines().map(str::trim_end).map(str::parse).collect();
         let sensor_beacons = sensor_beacons.unwrap();
+
+
         println!("{:?}", sensor_beacons);
 
         let beacon_finder = BeaconFinder::new(&sensor_beacons);
