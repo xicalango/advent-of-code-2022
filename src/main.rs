@@ -392,5 +392,8 @@ fn day15_main() {
 
     let beacon_finder = BeaconFinder::new(&sensor_beacons);
     let count = beacon_finder.find_impossible_beacon_positions::<4>(2_000_000, 750_000);
-    println!("count {}", count)
+    println!("count {}", count);
+
+    let pos = beacon_finder.find_beacon_location::<4>(4_000_000);
+    println!("pos: {:?} freq: {}", pos, pos.get_score());
 }

@@ -1,7 +1,7 @@
 use std::str::FromStr;
 use std::cmp::{max, min};
-use std::sync::Arc;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread;
 use crate::{Error, Scored};
 
@@ -52,8 +52,7 @@ pub struct BeaconFinder<'a> {
 }
 
 impl<'a> BeaconFinder<'a> {
-
-    pub fn new(sensor_beacons : &'a Vec<SensorBeacon>) -> BeaconFinder {
+    pub fn new(sensor_beacons: &'a Vec<SensorBeacon>) -> BeaconFinder {
         BeaconFinder {
             sensor_beacons
         }
@@ -66,13 +65,12 @@ impl<'a> BeaconFinder<'a> {
         let min_x = min_x - range_adj;
         let max_x = max_x + range_adj;
         let full_range = max_x - min_x;
-        let batch_size = full_range/N_THREADS;
+        let batch_size = full_range / N_THREADS;
 
         let counter = Arc::new(AtomicU64::new(0));
         let beacons = Arc::new(self.sensor_beacons);
 
         thread::scope(|scope| {
-
             let mut threads = Vec::new();
             for ti in 0..N_THREADS {
                 let counter_clone = counter.clone();
@@ -119,31 +117,70 @@ impl<'a> BeaconFinder<'a> {
         counter.load(Ordering::Relaxed)
     }
 
-    pub fn find_beacon_location(&self) -> PosVec {
-        for try_x in 0..=20 {
-            for try_y in 0..=20 {
-                let pos = PosVec::new(try_x, try_y);
+    pub fn find_beacon_location<const N_THREADS: usize>(&self, dimension: Pos) -> PosVec {
+        let found_pos = Arc::new(Mutex::new(None));
+        let found_flag = Arc::new(AtomicBool::new(false));
+        let beacons = Arc::new(self.sensor_beacons);
 
-                let any_beacon = self.sensor_beacons.iter()
-                    .any(|sb @ SensorBeacon(s, b)| {
-                        if &pos == b {
-                            return true;
+        let batch_size = dimension as usize / N_THREADS;
+
+        thread::scope(|scope| {
+            let mut threads = Vec::new();
+
+            for ti in 0..N_THREADS {
+                let thread_start_x = (ti * batch_size) as Pos;
+                let thread_end_x = thread_start_x + batch_size as Pos;
+
+                let found_pos_clone = found_pos.clone();
+                let beacons_clone = beacons.clone();
+                let found_flag_clone = found_flag.clone();
+
+                let thread = scope.spawn(move|| {
+                    for try_x in thread_start_x..thread_end_x {
+                        if found_flag_clone.fetch_and(true, Ordering::Relaxed) {
+                            break;
                         }
-                        let dist = sb.get_distance();
-                        let x_dist = s.clone() | pos.clone();
-                        x_dist <= dist
-                    });
+                        println!("thread {} starting on {}", ti, try_x);
+                        for try_y in 0..=dimension {
+                            if found_flag_clone.fetch_and(true, Ordering::Relaxed) {
+                                break;
+                            }
+                            let pos = PosVec::new(try_x, try_y);
 
-                if any_beacon {
-                    continue;
-                } else {
-                    return pos;
-                }
+                            let any_beacon = beacons_clone.iter()
+                                .any(|sb @ SensorBeacon(s, b)| {
+                                    if &pos == b {
+                                        return true;
+                                    }
+                                    let dist = sb.get_distance();
+                                    let x_dist = s.clone() | pos.clone();
+                                    x_dist <= dist
+                                });
+
+                            if any_beacon {
+                                continue;
+                            } else {
+                                *found_pos_clone.lock().unwrap() = Some(pos);
+                                found_flag_clone.fetch_or(true, Ordering::Relaxed);
+                                break;
+                            }
+                        }
+                    }
+                });
+
+                threads.push(thread);
             }
-        }
-        panic!("no beacon");
-    }
 
+            for thread in threads {
+                thread.join().unwrap();
+            }
+
+        });
+
+        let fp = found_pos.lock().unwrap();
+        let pos = fp.as_ref().unwrap();
+        pos.clone()
+    }
 }
 
 #[cfg(test)]
@@ -173,7 +210,7 @@ mod test {
         println!("{:?}", sensor_beacons);
 
         let beacon_finder = BeaconFinder::new(&sensor_beacons);
-        let pos = beacon_finder.find_beacon_location();
+        let pos = beacon_finder.find_beacon_location::<4>(20);
         println!("{:?}", pos);
         assert_eq!(56000011, pos.get_score());
     }
