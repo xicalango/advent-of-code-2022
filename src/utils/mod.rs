@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use std::num::ParseIntError;
 
 pub mod vec2;
+pub mod ranges;
 
 #[derive(Debug)]
 pub struct Error(pub String);
