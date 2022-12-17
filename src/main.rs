@@ -388,12 +388,10 @@ fn day15_main() {
     let sensor_beacons: Result<Vec<SensorBeacon>, Error> = input_data.lines().map(str::trim_end).map(str::parse).collect();
     let mut sensor_beacons = sensor_beacons.unwrap();
 
-    sensor_beacons.sort_by_key(|SensorBeacon(Vec2(_, y), _)| (y - 2_000_000).abs());
-
     let beacon_finder = BeaconFinder::new(&sensor_beacons);
-    let count = beacon_finder.find_impossible_beacon_positions::<4>(2_000_000, 750_000);
+    let count = beacon_finder.find_impossible_beacon(2_000_000);
     println!("count {}", count);
 
-    let pos = beacon_finder.find_beacon_location::<4>(4_000_000);
-    println!("pos: {:?} freq: {}", pos, pos.get_score());
+    // let pos = beacon_finder.find_beacon_location::<4>(4_000_000);
+    // println!("pos: {:?} freq: {}", pos, pos.get_score());
 }

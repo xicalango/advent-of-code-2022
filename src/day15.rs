@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use std::cmp::{max, min};
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread;
@@ -56,6 +57,37 @@ impl<'a> BeaconFinder<'a> {
         BeaconFinder {
             sensor_beacons
         }
+    }
+
+    pub fn find_impossible_beacon(&self, row: Pos) -> u64 {
+
+        let mut positions = HashSet::new();
+
+        let mut ranges = Vec::new();
+
+        for sb in self.sensor_beacons {
+            let SensorBeacon(sensor, beacon) = sb;
+
+            let dist = sb.get_distance();
+            let dist_to_row = (row - sensor.get_y()).abs();
+
+            if dist_to_row > dist {
+                continue
+            }
+
+            let remaining_dist = dist - dist_to_row;
+
+            ranges.push((sensor.get_x()-remaining_dist..=sensor.get_x()+remaining_dist));
+
+            for i in sensor.get_x()-remaining_dist..=sensor.get_x()+remaining_dist {
+                if beacon.get_x() == &i && beacon.get_y() == &row {
+                    continue
+                }
+                positions.insert(i);
+            }
+        }
+
+        positions.len() as u64
     }
 
     pub fn find_impossible_beacon_positions<const N_THREADS: Pos>(&self, row: Pos, range_adj: Pos) -> u64 {
@@ -200,6 +232,19 @@ mod test {
         let count = beacon_finder.find_impossible_beacon_positions::<4>(10, 10);
         println!("count: {}", count);
         assert_eq!(count, 26);
+    }
+
+    #[test]
+    fn test_smarter_part1() {
+        let sensor_beacons: Result<Vec<SensorBeacon>, Error> = EXAMPLE.lines().map(str::trim_end).map(str::parse).collect();
+        let sensor_beacons = sensor_beacons.unwrap();
+
+        println!("{:?}", sensor_beacons);
+
+        let beacon_finder = BeaconFinder::new(&sensor_beacons);
+        let count = beacon_finder.find_impossible_beacon(10);
+        println!("count: {}", count);
+        // assert_eq!(count, 26);
     }
 
     #[test]
