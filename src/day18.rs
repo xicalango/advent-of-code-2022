@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::str::FromStr;
 use crate::utils::{Error, Surroundings};
-use crate::utils::vec3::{Vec3, Vector3};
+use crate::utils::vec3::Vec3;
 
 pub type Pos = u8;
 
