@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
+use std::hash::{Hash, Hasher};
 use std::ops::{Add, BitOr, Mul, Sub};
 use std::str::FromStr;
 use crate::utils::Error;
@@ -179,3 +180,10 @@ impl<T: Sub<Output=T> + Add<Output=T> + Ord> BitOr for Vec2<T> {
     }
 }
 
+impl<T: Hash> Hash for Vec2<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        let Vec2(x, y) = self;
+        x.hash(state);
+        y.hash(state);
+    }
+}
