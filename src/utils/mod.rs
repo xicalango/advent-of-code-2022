@@ -4,6 +4,7 @@ use std::num::ParseIntError;
 pub mod vec2;
 pub mod ranges;
 pub mod num;
+pub mod vec3;
 
 #[derive(Debug)]
 pub struct Error(pub String);
