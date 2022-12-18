@@ -1,8 +1,7 @@
+use std::collections::HashSet;
 use std::str::FromStr;
-use std::cmp::{max, min};
 use std::ops::RangeInclusive;
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::thread;
 use crate::{Error, Scored};
 
@@ -51,55 +50,69 @@ impl FromStr for SensorBeacon {
 }
 
 #[derive(Debug, Default)]
-struct RangeCollector {
+pub struct RangeCollector {
     ranges: Vec<RangeInclusive<Pos>>,
 }
 
 impl RangeCollector {
-
     fn add_range(&mut self, add_range: RangeInclusive<Pos>) {
-        let mut add_range = Some(add_range);
+        let mut add_ranges = vec![add_range];
 
-        println!("range to add: {:?} current ranges: {:?}", add_range, self.ranges);
         for range in self.ranges.iter() {
-            let cur_add_range = add_range.take();
+            let mut new_ranges = Vec::new();
 
-            if cur_add_range.is_none() {
-                break;
+            for add_range in add_ranges.drain(..) {
+                let split_off = add_range.split_off(range);
+
+                if let Some(r1) = &split_off[0] {
+                    new_ranges.push(r1.clone());
+                }
+
+                if let Some(r2) = &split_off[2] {
+                    new_ranges.push(r2.clone());
+                }
             }
 
-            let cur_add_range = cur_add_range.unwrap();
 
-            add_range = cur_add_range.subtract(range);
-        }
-        println!("range to add: {:?} current ranges: {:?}", add_range, self.ranges);
-
-        if add_range.is_none() {
-            return;
+            add_ranges = new_ranges;
         }
 
-        for range in self.ranges.iter_mut() {
-            let cur_add_range = add_range.take();
-
-            if cur_add_range.is_none() {
-                break;
-            }
-
-            let cur_add_range = cur_add_range.unwrap();
-
-            add_range = range.join_mut(cur_add_range);
-        }
-
-        println!("range to add: {:?} current ranges: {:?}", add_range, self.ranges);
-
-        if let Some(range) = add_range {
+        for range in add_ranges {
             self.ranges.push(range);
         }
-        println!("final ranges: {:?}", self.ranges);
     }
 
-    pub fn ranges(&self) -> &Vec<RangeInclusive<Pos>> {
-        &self.ranges
+    pub fn ranges(self) -> Vec<RangeInclusive<Pos>> {
+        self.ranges
+    }
+
+    pub fn contains(&self, value: &Pos) -> bool {
+        self.ranges.iter().any(|r| r.contains(value))
+    }
+
+    pub fn find_first_gap(&self) -> Option<Pos> {
+        if self.ranges.is_empty() {
+            return None;
+        }
+
+        let mut sorted_ranges = self.ranges.clone();
+        sorted_ranges.sort_by_key(|r| *r.start());
+
+        let mut iter = sorted_ranges.into_iter();
+        let mut last_range = iter.next().unwrap();
+
+        for range in iter {
+            if last_range.end() + 1 != *range.start() {
+                return Some(last_range.end() + 1);
+            }
+            last_range = range;
+        }
+
+        None
+    }
+
+    pub fn find_gaps(&self, search_range: RangeInclusive<Pos>) -> Vec<Pos> {
+        search_range.into_iter().filter(|r| !self.contains(r)).collect()
     }
 
 }
@@ -125,8 +138,7 @@ impl<'a> BeaconFinder<'a> {
         }
     }
 
-    pub fn find_impossible_beacon(&self, row: Pos) -> u64 {
-
+    pub fn find_impossible_locations(&self, row: &Pos) -> RangeCollector {
         let mut range_collector = RangeCollector::default();
 
         for sb in self.sensor_beacons {
@@ -136,145 +148,78 @@ impl<'a> BeaconFinder<'a> {
             let dist_to_row = (row - sensor.get_y()).abs();
 
             if dist_to_row > dist {
-                continue
+                continue;
             }
 
             let remaining_dist = dist - dist_to_row;
 
             let range = sensor.get_x() - remaining_dist..=sensor.get_x() + remaining_dist;
-            println!("new range: {:?}", range);
             range_collector.add_range(range);
         }
 
-        println!("{:?}", range_collector);
-
-        let len: Pos = range_collector.ranges().iter().map(|r| r.len()).sum();
-
-        len as u64
+        range_collector
     }
 
-    pub fn find_impossible_beacon_positions<const N_THREADS: Pos>(&self, row: Pos, range_adj: Pos) -> u64 {
-        let min_x = self.sensor_beacons.iter().map(|SensorBeacon(sp, bp)| min(sp.get_x(), bp.get_x())).min().unwrap();
-        let max_x = self.sensor_beacons.iter().map(|SensorBeacon(sp, bp)| max(sp.get_x(), bp.get_x())).max().unwrap();
+    pub fn find_beacons_on_row(&self, row: &Pos) -> usize {
+        let mut xcoords = HashSet::new();
 
-        let min_x = min_x - range_adj;
-        let max_x = max_x + range_adj;
-        let full_range = max_x - min_x;
-        let batch_size = full_range / N_THREADS;
-
-        let counter = Arc::new(AtomicU64::new(0));
-        let beacons = Arc::new(self.sensor_beacons);
-
-        thread::scope(|scope| {
-            let mut threads = Vec::new();
-            for ti in 0..N_THREADS {
-                let counter_clone = counter.clone();
-                let beacons_clone = beacons.clone();
-                let row_clone = row.clone();
-
-                let thread_start_idx = (ti * batch_size) + min_x;
-                let thread_end_idx = thread_start_idx + batch_size;
-
-                println!("thread {} from {} to {}", ti, thread_start_idx, thread_end_idx);
-
-                let thread = scope.spawn(move || {
-                    let mut local_counter = 0;
-
-                    for x in thread_start_idx..thread_end_idx {
-                        let pos = PosVec::new(x, row_clone);
-
-                        let any_beacon = beacons_clone.iter()
-                            .any(|sb @ SensorBeacon(s, b)| {
-                                if &pos == b {
-                                    return false;
-                                }
-                                let dist = sb.get_distance();
-                                let x_dist = s.clone() | pos.clone();
-                                x_dist <= dist
-                            });
-
-                        if any_beacon {
-                            local_counter += 1;
-                        }
-                    }
-
-                    counter_clone.fetch_add(local_counter, Ordering::Relaxed);
-                });
-
-                threads.push(thread);
-            }
-
-            for thread in threads {
-                thread.join().unwrap();
-            }
-        });
-
-        counter.load(Ordering::Relaxed)
+        self.sensor_beacons.iter()
+            .filter(|SensorBeacon(_, beacon)| {
+                xcoords.insert(beacon.get_x()) && beacon.get_y() == row
+            }).count()
     }
 
-    pub fn find_beacon_location<const N_THREADS: usize>(&self, dimension: Pos) -> PosVec {
-        let found_pos = Arc::new(Mutex::new(None));
-        let found_flag = Arc::new(AtomicBool::new(false));
-        let beacons = Arc::new(self.sensor_beacons);
+    pub fn find_impossible_beacon(&self, row: &Pos) -> usize {
+        let ranges = self.find_impossible_locations(row).ranges();
+        let beacons_on_row = self.find_beacons_on_row(&row);
 
-        let batch_size = dimension as usize / N_THREADS;
+        let len: usize = ranges.iter().map(|r| r.len() as usize).sum();
+        len - beacons_on_row
+    }
+
+    pub fn find_beacon_location_in_range(&self, range: RangeInclusive<Pos>) -> Option<PosVec> {
+        for row in range {
+            let range_collector = self.find_impossible_locations(&row);
+            if let Some(first_gap) = range_collector.find_first_gap() {
+                return Some(Vec2(first_gap, row))
+            }
+        }
+
+        None
+    }
+
+    pub fn find_beacon_location_threaded<const N_THREADS: Pos>(&self, max_row: Pos) -> PosVec {
+        let batch_size = max_row / N_THREADS;
+
+        let target: Arc<Mutex<Option<PosVec>>> = Arc::new(Mutex::new(None));
 
         thread::scope(|scope| {
-            let mut threads = Vec::new();
 
-            for ti in 0..N_THREADS {
-                let thread_start_x = (ti * batch_size) as Pos;
-                let thread_end_x = thread_start_x + batch_size as Pos;
+            let mut join_handles = Vec::new();
 
-                let found_pos_clone = found_pos.clone();
-                let beacons_clone = beacons.clone();
-                let found_flag_clone = found_flag.clone();
+            for i in 0..N_THREADS {
+                let target_clone = target.clone();
 
+                let start_batch = i * batch_size;
+                let end_batch = start_batch + batch_size - 1;
+
+                let search_range = start_batch as Pos..=end_batch as Pos;
                 let thread = scope.spawn(move|| {
-                    for try_x in thread_start_x..thread_end_x {
-                        if found_flag_clone.fetch_and(true, Ordering::Relaxed) {
-                            break;
-                        }
-                        println!("thread {} starting on {}", ti, try_x);
-                        for try_y in 0..=dimension {
-                            if found_flag_clone.fetch_and(true, Ordering::Relaxed) {
-                                break;
-                            }
-                            let pos = PosVec::new(try_x, try_y);
-
-                            let any_beacon = beacons_clone.iter()
-                                .any(|sb @ SensorBeacon(s, b)| {
-                                    if &pos == b {
-                                        return true;
-                                    }
-                                    let dist = sb.get_distance();
-                                    let x_dist = s.clone() | pos.clone();
-                                    x_dist <= dist
-                                });
-
-                            if any_beacon {
-                                continue;
-                            } else {
-                                *found_pos_clone.lock().unwrap() = Some(pos);
-                                found_flag_clone.fetch_or(true, Ordering::Relaxed);
-                                break;
-                            }
-                        }
+                    let result = self.find_beacon_location_in_range(search_range);
+                    if result.is_some() {
+                        *target_clone.lock().unwrap() = result
                     }
                 });
-
-                threads.push(thread);
+                join_handles.push(thread);
             }
 
-            for thread in threads {
-                thread.join().unwrap();
+            for handle in join_handles {
+                handle.join().unwrap();
             }
-
         });
 
-        let fp = found_pos.lock().unwrap();
-        let pos = fp.as_ref().unwrap();
-        pos.clone()
+        let locked = target.lock().unwrap();
+        locked.as_ref().unwrap().clone()
     }
 }
 
@@ -285,19 +230,6 @@ mod test {
     static EXAMPLE: &'static str = include_str!("../res/day15-beacons_example.txt");
 
     #[test]
-    fn test_parse_input() {
-        let sensor_beacons: Result<Vec<SensorBeacon>, Error> = EXAMPLE.lines().map(str::trim_end).map(str::parse).collect();
-        let sensor_beacons = sensor_beacons.unwrap();
-
-        println!("{:?}", sensor_beacons);
-
-        let beacon_finder = BeaconFinder::new(&sensor_beacons);
-        let count = beacon_finder.find_impossible_beacon_positions::<4>(10, 10);
-        println!("count: {}", count);
-        assert_eq!(count, 26);
-    }
-
-    #[test]
     fn test_smarter_part1() {
         let sensor_beacons: Result<Vec<SensorBeacon>, Error> = EXAMPLE.lines().map(str::trim_end).map(str::parse).collect();
         let sensor_beacons = sensor_beacons.unwrap();
@@ -305,9 +237,9 @@ mod test {
         println!("{:?}", sensor_beacons);
 
         let beacon_finder = BeaconFinder::new(&sensor_beacons);
-        let count = beacon_finder.find_impossible_beacon(10);
+        let count = beacon_finder.find_impossible_beacon(&10);
         println!("count: {}", count);
-        // assert_eq!(count, 26);
+        assert_eq!(count, 26);
     }
 
     #[test]
@@ -318,7 +250,7 @@ mod test {
         println!("{:?}", sensor_beacons);
 
         let beacon_finder = BeaconFinder::new(&sensor_beacons);
-        let pos = beacon_finder.find_beacon_location::<4>(20);
+        let pos = beacon_finder.find_beacon_location_threaded::<4>(20);
         println!("{:?}", pos);
         assert_eq!(56000011, pos.get_score());
     }

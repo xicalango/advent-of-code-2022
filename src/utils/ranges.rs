@@ -1,4 +1,5 @@
 use std::ops::{RangeInclusive, Sub};
+use crate::utils::num::{Decrement, Increment};
 
 pub trait RangeExt {
 
@@ -19,10 +20,12 @@ pub trait RangeExt {
         *self = joined;
         reminder
     }
+
+    fn split_off(&self, other: &Self) -> [Option<Self>; 3] where Self: Sized;
 }
 
 impl<T> RangeExt for RangeInclusive<T>
-where T: Ord + Copy
+where T: Ord + Copy + Decrement<Output = T> + Increment<Output = T>
 {
     fn contains_fully(&self, other: &Self) -> bool {
         let intersection = self.intersect(other);
@@ -85,6 +88,31 @@ where T: Ord + Copy
             (self.clone(), Some(other.clone()))
         }
     }
+
+    fn split_off(&self, other: &Self) -> [Option<Self>; 3] where Self: Sized {
+        let mut result = [None, None, None];
+
+        let intersection = self.intersect(other);
+
+        if intersection.is_none() {
+            result[0] = Some(self.clone());
+            return result;
+        }
+
+        let intersection = intersection.unwrap();
+
+        if intersection.start() != self.start() {
+            result[0] = Some(*self.start()..=intersection.start().dec());
+        }
+
+        if intersection.end() != self.end() {
+            result[2] = Some(intersection.end().inc()..=*self.end());
+        }
+
+        result[1] = Some(intersection);
+
+        result
+    }
 }
 
 pub trait RangeLength {
@@ -93,10 +121,10 @@ pub trait RangeLength {
 }
 
 impl<T> RangeLength for RangeInclusive<T>
-where T: Sub<T, Output=T> + Copy {
+where T: Sub<T, Output=T> + Increment<Output=T> + Copy {
     type Output = T;
 
     fn len(&self) -> Self::Output {
-        *self.end() - *self.start()
+        self.end().inc() - *self.start()
     }
 }
