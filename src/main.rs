@@ -380,9 +380,9 @@ fn day15_main() {
     let sensor_beacons = sensor_beacons.unwrap();
 
     let beacon_finder = BeaconFinder::new(&sensor_beacons);
-    let count = beacon_finder.find_impossible_beacon(2_000_000);
+    let count = beacon_finder.find_impossible_beacon(&2_000_000);
     println!("count {}", count);
 
-    // let pos = beacon_finder.find_beacon_location::<4>(4_000_000);
-    // println!("pos: {:?} freq: {}", pos, pos.get_score());
+    let pos = beacon_finder.find_beacon_location_threaded::<4>(4_000_000);
+    println!("pos: {:?} freq: {}", pos, pos.get_score());
 }
