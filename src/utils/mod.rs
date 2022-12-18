@@ -20,3 +20,7 @@ impl From<ParseIntError> for Error {
         Error(pie.to_string())
     }
 }
+
+pub trait Surroundings {
+    fn get_surroundings(&self) -> Vec<Self> where Self: Sized;
+}
