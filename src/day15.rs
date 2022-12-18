@@ -205,9 +205,15 @@ impl<'a> BeaconFinder<'a> {
 
                 let search_range = start_batch as Pos..=end_batch as Pos;
                 let thread = scope.spawn(move|| {
-                    let result = self.find_beacon_location_in_range(search_range);
-                    if result.is_some() {
-                        *target_clone.lock().unwrap() = result
+                    for row in search_range {
+                        if target_clone.lock().unwrap().is_some() {
+                            break;
+                        }
+
+                        let range_collector = self.find_impossible_locations(&row);
+                        if let Some(first_gap) = range_collector.find_first_gap() {
+                            *target_clone.lock().unwrap() = Some(Vec2(first_gap, row))
+                        }
                     }
                 });
                 join_handles.push(thread);
