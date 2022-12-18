@@ -1,10 +1,10 @@
-use std::arch::x86_64::_bzhi_u32;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::ops::{Add, Sub};
 use std::str::FromStr;
-use crate::utils::Error;
+use crate::utils::{Error, Surroundings};
+use crate::utils::num::{Decrement, Increment};
 use crate::utils::vec2::Vec2;
 
 pub struct Vec3<T>(pub T, pub T, pub T);
@@ -178,5 +178,23 @@ impl<T: Hash> Hash for Vec3<T> {
         x.hash(state);
         y.hash(state);
         z.hash(state);
+    }
+}
+
+impl<T: Copy + Increment<Output=T> + Decrement<Output=T>> Surroundings for Vec3<T> {
+    fn get_surroundings(&self) -> Vec<Self> where Self: Sized {
+        let Vec3(x, y, z) = self;
+        let mut surroundings = Vec::new();
+
+        surroundings.push(Vec3(x.dec(), *y, *z));
+        surroundings.push(Vec3(x.inc(), *y, *z));
+
+        surroundings.push(Vec3(*x, y.dec(), *z));
+        surroundings.push(Vec3(*x, y.inc(), *z));
+
+        surroundings.push(Vec3(*x, *y, z.dec()));
+        surroundings.push(Vec3(*x, *y, z.inc()));
+
+        surroundings
     }
 }

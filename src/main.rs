@@ -45,6 +45,7 @@ fn main() {
     bench.run_day(13, day13_main);
     bench.run_day(14, day14_main);
     bench.run_day(15, day15_main);
+    bench.run_day(18, day18_main);
 
     bench.print_times();
     println!();
@@ -386,4 +387,13 @@ fn day15_main() {
 
     let pos = beacon_finder.find_beacon_location_threaded::<4>(4_000_000);
     println!("pos: {:?} freq: {}", pos, pos.get_score());
+}
+
+fn day18_main() {
+    use day18::*;
+
+    let input_data = include_str!("../res/day18-faces.txt");
+    let droplet: Droplet = input_data.parse().unwrap();
+
+    println!("surface area: {}", droplet.calc_surface_area());
 }
