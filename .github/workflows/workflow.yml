@@ -44,3 +44,9 @@ jobs:
         with:
           command: run
           args: --release
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: binary
+          path: target/release/advent-of-code-2022
