@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::str::FromStr;
 use std::ops::RangeInclusive;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::thread;
 use crate::{Error, Scored};
 
@@ -191,7 +191,7 @@ impl<'a> BeaconFinder<'a> {
     pub fn find_beacon_location_threaded<const N_THREADS: Pos>(&self, max_row: Pos) -> PosVec {
         let batch_size = max_row / N_THREADS;
 
-        let target: Arc<Mutex<Option<PosVec>>> = Arc::new(Mutex::new(None));
+        let target: Arc<RwLock<Option<PosVec>>> = Arc::new(RwLock::new(None));
 
         thread::scope(|scope| {
 
@@ -206,13 +206,13 @@ impl<'a> BeaconFinder<'a> {
                 let search_range = start_batch as Pos..=end_batch as Pos;
                 let thread = scope.spawn(move|| {
                     for row in search_range {
-                        if target_clone.lock().unwrap().is_some() {
+                        if target_clone.read().unwrap().is_some() {
                             break;
                         }
 
                         let range_collector = self.find_impossible_locations(&row);
                         if let Some(first_gap) = range_collector.find_first_gap() {
-                            *target_clone.lock().unwrap() = Some(Vec2(first_gap, row))
+                            *target_clone.write().unwrap() = Some(Vec2(first_gap, row))
                         }
                     }
                 });
@@ -224,7 +224,7 @@ impl<'a> BeaconFinder<'a> {
             }
         });
 
-        let locked = target.lock().unwrap();
+        let locked = target.read().unwrap();
         locked.as_ref().unwrap().clone()
     }
 }
