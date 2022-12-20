@@ -6,6 +6,7 @@ pub mod ranges;
 pub mod num;
 pub mod vec3;
 pub mod bv;
+pub mod ringbuf;
 
 #[derive(Debug)]
 pub struct Error(pub String);
