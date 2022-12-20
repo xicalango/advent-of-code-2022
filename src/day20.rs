@@ -48,12 +48,12 @@ impl EncryptedFile {
         let double_len = (self.len() * 2) as isize;
         let dir = rel.signum();
 
-        println!("cur: {} rel: {}", cur, rel);
+        // println!("cur: {} rel: {}", cur, rel);
 
         let virt_cur = cur * 2;
         let virt_cur = virt_cur + dir;
 
-        println!("virt_cur: {}", virt_cur);
+        // println!("virt_cur: {}", virt_cur);
 
         let virt_dest = virt_cur + (rel * 2);
         let virt_dest = virt_dest % double_len;
@@ -64,7 +64,7 @@ impl EncryptedFile {
             virt_dest += double_len;
         }
 
-        println!("virt dest: {}", virt_dest);
+        // println!("virt dest: {}", virt_dest);
 
         let virt_dest = virt_dest;
 
@@ -74,7 +74,7 @@ impl EncryptedFile {
             virt_dest / 2
         };
 
-        println!("dest: {}", dest);
+        // println!("dest: {}", dest);
 
         assert!(dest >= 0);
 
@@ -124,7 +124,11 @@ impl EncryptedFile {
             let index_of = self.index_of(i);
             let destination = self.calc_rel_pos(index_of as isize, displacement);
 
+            // println!("round {}, displacement {}, index_of {} destination {}, before: {:?}", i, displacement, index_of, destination, self.content());
+
             self.swap_towards(index_of, destination);
+
+            // println!("round {}, displacement {}, index_of {} destination {}, afterr: {:?}", i, displacement, index_of, destination, self.content());
         }
 
         zero_pos.map(|v| self.index_of(v))
@@ -194,7 +198,7 @@ mod test {
 
     #[test]
     fn test_move_around_2() {
-        let mut ef: EncryptedFile = EncryptedFile::new(vec![-3, -4, 5, 6, 7, 8, 9]);
+        let mut ef: EncryptedFile = EncryptedFile::new(vec![-3, -3, 5, 6, 7, 8, 9]);
 
         ef.decrypt();
 

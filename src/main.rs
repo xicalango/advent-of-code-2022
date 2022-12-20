@@ -409,14 +409,15 @@ fn day20_main() {
 
     println!("zero_pos: {}", zero_pos);
 
-    let raw_data: Vec<Number> = input_data.lines().map(|l| l.trim_end().parse::<Number>().unwrap()).collect();
-    let raw_data_refs: Vec<&Number> = raw_data.iter().collect();
-    assert_eq!(ef.original_content(), raw_data_refs);
-    assert_ne!(ef.content(), &raw_data);
+    // let raw_data: Vec<Number> = input_data.lines().map(|l| l.trim_end().parse::<Number>().unwrap()).collect();
+    // let raw_data_refs: Vec<&Number> = raw_data.iter().collect();
+    // assert_eq!(ef.original_content(), raw_data_refs);
+    // assert_ne!(ef.content(), &raw_data);
 
     let coordinates: Vec<&Number> = vec![1000, 2000, 3000].into_iter()
         .map(|v| v + zero_pos)
-        .map(|v| ef.access_at_wrapping(v)).collect();
+        .map(|v| ef.access_at_wrapping(v))
+        .collect();
 
     println!("coords: {:?}", coordinates);
 
