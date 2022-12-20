@@ -46,6 +46,7 @@ fn main() {
     bench.run_day(14, day14_main);
     bench.run_day(15, day15_main);
     bench.run_day(18, day18_main);
+    bench.run_day(20, day20_main);
 
     bench.print_times();
     println!();
@@ -396,4 +397,29 @@ fn day18_main() {
     let droplet: Droplet = input_data.parse().unwrap();
 
     println!("surface area: {}", droplet.calc_surface_area());
+}
+
+fn day20_main() {
+    use day20::*;
+
+    let input_data = include_str!("../res/day20-enc.txt");
+    let mut ef: EncryptedFile = input_data.parse().unwrap();
+
+    let zero_pos = ef.decrypt().unwrap();
+
+    println!("zero_pos: {}", zero_pos);
+
+    let raw_data: Vec<Number> = input_data.lines().map(|l| l.trim_end().parse::<Number>().unwrap()).collect();
+    let raw_data_refs: Vec<&Number> = raw_data.iter().collect();
+    assert_eq!(ef.original_content(), raw_data_refs);
+    assert_ne!(ef.content(), &raw_data);
+
+    let coordinates: Vec<&Number> = vec![1000, 2000, 3000].into_iter()
+        .map(|v| v + zero_pos)
+        .map(|v| ef.access_at_wrapping(v)).collect();
+
+    println!("coords: {:?}", coordinates);
+
+    let sum: Number = coordinates.iter().map(|v| *v).sum();
+    println!("sum: {}", sum)
 }
