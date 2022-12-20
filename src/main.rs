@@ -18,6 +18,7 @@ pub mod day14;
 pub mod day15;
 pub mod day18;
 pub mod day17;
+pub mod day20;
 
 use bench::Bench;
 use crate::utils::Error;
