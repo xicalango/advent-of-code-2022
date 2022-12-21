@@ -437,4 +437,9 @@ fn day21_main() {
 
     let (lhs, rhs) = defs.human_eval();
     println!("{} = {}", lhs, rhs);
+    
+    if let Value::Value(v) = rhs {
+        let solution = solve(&lhs, v);
+        println!("solution: {}", solution);
+    }
 }

@@ -21,6 +21,15 @@ impl Operation {
             Operation::Div => lhs / rhs,
         }
     }
+    
+    pub fn invert(&self) -> Operation {
+        match self {
+            Operation::Add => Operation::Sub,
+            Operation::Sub => Operation::Add,
+            Operation::Mul => Operation::Div,
+            Operation::Div => Operation::Mul,
+        }
+    }
 
 }
 
@@ -255,6 +264,33 @@ impl MonkeyDefinitions {
 
 }
 
+pub fn solve(v1: &Value, v2: i64) -> i64 {
+    
+    let mut cur_v1 = v1.clone();
+    let mut cur_v2 = v2.clone();
+    
+    while let Value::XOp(op1, op, op2) = cur_v1 {
+        let inv_op = op.invert();
+        if let Value::Value(v) = *op1 {
+            cur_v1 = *op2;
+            
+            cur_v2 = match op {
+                Operation::Sub | Operation::Div => {
+                    op.eval(v, cur_v2)
+                },
+                _ => inv_op.eval(cur_v2, v),
+            };
+        } else if let Value::Value(v) = *op2 {
+            cur_v1 = *op1;
+            cur_v2 = inv_op.eval(cur_v2, v);
+        } else {
+            panic!();
+        }
+    }
+    
+    cur_v2
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -281,5 +317,8 @@ mod test {
         let (lhs, rhs) = defs.human_eval();
         println!("{}", lhs);
         println!("{}", rhs);
+        if let Value::Value(v) = rhs {
+            println!("solved: {}", solve(&lhs, v));
+        }
     }
 }
