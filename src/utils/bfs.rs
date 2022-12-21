@@ -18,6 +18,19 @@ pub struct Bfs<'a, F, G>
     filter: F,
 }
 
+pub fn bfs<G>(graph: &G, start_pos: &G::Position) -> HashMap<G::Position, u64>
+    where G: Graph
+{
+    Bfs::new(graph, |_, _| true).run(start_pos)
+}
+
+pub fn filtered_bfs<G, F>(graph: &G, filter: F, start_pos: &G::Position) -> HashMap<G::Position, u64>
+    where F: Fn(&G::Property, &G::Property) -> bool,
+        G: Graph,
+{
+    Bfs::new(graph, filter).run(start_pos)
+}
+
 impl<'a, F, G> Bfs<'a, F, G>
     where F: Fn(&G::Property, &G::Property) -> bool,
         G: Graph,

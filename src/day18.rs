@@ -2,11 +2,12 @@ use std::collections::HashSet;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use crate::utils::{Error, Surroundings};
+use crate::utils::bfs::{Graph, bfs};
 use crate::utils::minmax::MinMax;
 use crate::utils::vec3::{Vec3, Vector3};
 use crate::utils::vec2::{Vec2, Vector2};
 
-pub type Pos = u8;
+pub type Pos = i8;
 
 pub trait SurfaceArea {
     fn calc_surface_area(&self) -> usize;
@@ -132,17 +133,18 @@ impl DropletSlice {
     }
 
     pub fn fill_empty_spots(&self) -> HashSet<Vec2<Pos>> {
-        let (Vec2(min_x, min_y), Vec2(max_x, max_y)) = self.bounding_box();
+        let (mv@Vec2(min_x, min_y), Vec2(max_x, max_y)) = self.bounding_box();
+
+        let reachable = bfs(self, &mv.map(|v| v.saturating_sub(1)));
+
 
         let mut filled_positions: HashSet<Vec2<Pos>> = HashSet::new();
 
         for y in *min_y..=*max_y {
             for x in *min_x..=*max_x {
                 let pos = Vec2::new(x, y);
-                if self.positions.contains(&pos) {
+                if !reachable.contains_key(&pos) {
                     filled_positions.insert(pos);
-                } else {
-                    // pos.get_surroundings().into_iter().all(|p| self.positions.contains(&p))
                 }
             }
         }
@@ -151,37 +153,25 @@ impl DropletSlice {
 
     }
 
-    pub fn calc_outer_surface(&self) -> HashSet<Vec2<Pos>> {
-        let (Vec2(min_x, min_y), Vec2(max_x, max_y)) = self.bounding_box();
+}
 
-        let mut surface_positions: HashSet<Vec2<Pos>> = HashSet::new();
+impl Graph for DropletSlice {
+    type Position = Vec2<Pos>;
+    type Property = ();
 
-        for y in *min_y..=*max_y {
-            let mut cont = false;
-
-            for x in *min_x..=*max_x {
-                let pos = Vec2::new(x, y);
-                if self.positions.contains(&pos) {
-                    surface_positions.insert(pos);
-                    cont = true;
-                    break;
-                }
-            }
-
-            if cont {
-                for x in (*min_x..=*max_x).rev() {
-                    let pos = Vec2::new(x, y);
-                    if self.positions.contains(&pos) {
-                        surface_positions.insert(pos);
-                        break;
-                    }
-                }
-            }
-        }
-
-        surface_positions
+    fn get_property(&self, _: &Self::Position) -> &Self::Property {
+        &()
     }
 
+    fn get_surroundings(&self, pos: &Self::Position) -> Vec<Self::Position> {
+        let Vec2(max_x, max_y) = self.bottom_right.map(|v| v.saturating_add(2));
+
+        pos.get_surroundings().iter().filter(|p| {
+                p.get_x() <= &max_x &&
+                p.get_y() <= &max_y &&
+                !self.positions.contains(p)
+        }).map(|v| v.clone()).collect()
+    }
 }
 
 impl Display for DropletSlice {
@@ -225,6 +215,7 @@ mod test {
         println!("hollow");
         for i in 1..=6 {
             let mut slice = droplet.slice_z(i);
+            slice.bfs_ish();
             slice.set_top_left(Vec2(1, 1));
             slice.set_bottom_right(Vec2(3, 3));
             println!("{}", slice);

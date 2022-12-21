@@ -20,17 +20,18 @@ pub trait One {
     fn one() -> Self;
 }
 
-impl<T: From<u8>> Zero for T {
+impl<T: From<i8>> Zero for T {
     fn zero() -> Self {
-        (0 as u8).into()
+        (0 as i8).into()
     }
 }
 
-impl<T: From<u8>> One for T {
+impl<T: From<i8>> One for T {
     fn one() -> Self {
-        (1 as u8).into()
+        (1 as i8).into()
     }
 }
+
 
 impl<T: One + Add<T, Output=T>> Increment for T{
     type Output = T;
