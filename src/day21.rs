@@ -239,8 +239,6 @@ impl MonkeyDefinitions {
 
                     let result = match (lhs, rhs) {
                         (Value::Value(v1), Value::Value(v2)) => Value::Value(op.eval(*v1, *v2)),
-                        (x@Value::X, ov) => Value::XOp(Box::new(x.clone()), op.clone(), Box::new(ov.clone())),
-                        (ov, x@Value::X) => Value::XOp(Box::new(ov.clone()), op.clone(), Box::new(x.clone())),
                         (xop1, xop2) => Value::XOp(Box::new(xop1.clone()), op.clone(), Box::new(xop2.clone())),
                     };
                     value_cache.insert(last, result);
