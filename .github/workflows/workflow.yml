@@ -1,5 +1,6 @@
 # Based on https://github.com/actions-rs/meta/blob/master/recipes/quickstart.md
 
+# only run for PRs targeting main and pushes on main
 on:
   push:
     branches:
