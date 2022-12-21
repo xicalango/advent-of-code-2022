@@ -1,6 +1,13 @@
 # Based on https://github.com/actions-rs/meta/blob/master/recipes/quickstart.md
 
-on: [push, pull_request]
+# only run for PRs targeting main and pushes on main
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
 
 name: Test & Run
 
