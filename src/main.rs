@@ -22,6 +22,7 @@ pub mod day20;
 pub mod day21;
 
 use bench::Bench;
+use crate::day14::Vec2;
 use crate::utils::Error;
 
 pub trait Scored {
@@ -401,14 +402,20 @@ fn day18_main() {
     println!("surface area: {}", droplet.calc_surface_area());
 
     let filled_droplet = droplet.filled_droplet();
+    let (minx, maxx) = filled_droplet.min_max_x();
+    let (miny, maxy) = filled_droplet.min_max_y();
     let (minz, maxz) = filled_droplet.min_max_z();
 
     for i in *minz..=*maxz {
-        let filled_slice = filled_droplet.slice_z(i);
-        let slice = droplet.slice_z(i);
-        println!("slice: {}", i);
-        println!("{}", slice);
-        println!("{}", filled_slice);
+        let mut filled_slice = filled_droplet.slice_z(i);
+        let mut slice = droplet.slice_z(i);
+        filled_slice.set_top_left(Vec2(*minx, *miny));
+        filled_slice.set_bottom_right(Vec2(*maxx, *maxy));
+        slice.set_top_left(Vec2(*minx, *miny));
+        slice.set_bottom_right(Vec2(*maxx, *maxy));
+        // println!("slice: {}", i);
+        // println!("{}", slice);
+        // println!("{}", filled_slice);
     }
 
     println!("outer surface area: {}", droplet.calc_outer_surface_area());
@@ -449,7 +456,7 @@ fn day21_main() {
     println!("root: {}", root_val);
 
     let (lhs, rhs) = defs.human_eval();
-    println!("{} = {}", lhs, rhs);
+    // println!("{} = {}", lhs, rhs);
     
     if let Value::Value(v) = rhs {
         let solution = solve(&lhs, v);

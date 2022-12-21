@@ -62,6 +62,16 @@ impl OuterSurfaceArea for Droplet {
 
 impl Droplet {
 
+    pub fn min_max_x(&self) -> (&Pos, &Pos) {
+        let Droplet(positions) = self;
+        positions.iter().map(|v| v.get_x()).min_max().unwrap()
+    }
+
+    pub fn min_max_y(&self) -> (&Pos, &Pos) {
+        let Droplet(positions) = self;
+        positions.iter().map(|v| v.get_y()).min_max().unwrap()
+    }
+
     pub fn min_max_z(&self) -> (&Pos, &Pos) {
         let Droplet(positions) = self;
         positions.iter().map(|v| v.get_z()).min_max().unwrap()
@@ -137,7 +147,6 @@ impl DropletSlice {
 
         let reachable = bfs(self, &mv.map(|v| v.saturating_sub(1)));
 
-
         let mut filled_positions: HashSet<Vec2<Pos>> = HashSet::new();
 
         for y in *min_y..=*max_y {
@@ -164,9 +173,12 @@ impl Graph for DropletSlice {
     }
 
     fn get_surroundings(&self, pos: &Self::Position) -> Vec<Self::Position> {
+        let Vec2(min_x, min_y) = self.top_left.map(|v| v.saturating_sub(2));
         let Vec2(max_x, max_y) = self.bottom_right.map(|v| v.saturating_add(2));
 
         pos.get_surroundings().iter().filter(|p| {
+            p.get_x() >= &min_x &&
+                p.get_y() >= &min_y &&
                 p.get_x() <= &max_x &&
                 p.get_y() <= &max_y &&
                 !self.positions.contains(p)
