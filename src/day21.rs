@@ -264,7 +264,7 @@ impl MonkeyDefinitions {
 
 }
 
-pub fn solve(v1: &Value, v2: i64) {
+pub fn solve(v1: &Value, v2: i64) -> i64 {
     
     let mut cur_v1 = v1.clone();
     let mut cur_v2 = v2.clone();
@@ -282,8 +282,7 @@ pub fn solve(v1: &Value, v2: i64) {
         }
     }
     
-    
-    println!("{:?} = {:?}", cur_v1, cur_v2);
+    cur_v2
 }
 
 #[cfg(test)]
@@ -313,7 +312,7 @@ mod test {
         println!("{}", lhs);
         println!("{}", rhs);
         if let Value::Value(v) = rhs {
-            solve(&lhs, v);
+            println!("solved: {}", solve(&lhs, v));
         }
     }
 }
