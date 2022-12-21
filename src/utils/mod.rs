@@ -15,6 +15,10 @@ impl Error {
     pub fn new(message: &impl ToString) -> Error {
         Error(message.to_string())
     }
+
+    pub fn cannot_parse(original: &(impl ToString + ?Sized)) -> Error {
+        Error::new(&format!("cannot parse {}", original.to_string()))
+    }
 }
 
 impl From<ParseIntError> for Error {

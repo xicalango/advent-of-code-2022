@@ -19,6 +19,7 @@ pub mod day15;
 pub mod day18;
 pub mod day17;
 pub mod day20;
+pub mod day21;
 
 use bench::Bench;
 use crate::utils::Error;
@@ -47,6 +48,7 @@ fn main() {
     bench.run_day(15, day15_main);
     bench.run_day(18, day18_main);
     bench.run_day(20, day20_main);
+    bench.run_day(21, day21_main);
 
     bench.print_times();
     println!();
@@ -423,4 +425,16 @@ fn day20_main() {
 
     let sum: Number = coordinates.iter().map(|v| *v).sum();
     println!("sum: {}", sum)
+}
+
+fn day21_main() {
+    use day21::*;
+    let input_data = include_str!("../res/day21-shout.txt");
+
+    let defs: MonkeyDefinitions = input_data.parse().unwrap();
+    let root_val = defs.eval();
+    println!("root: {}", root_val);
+
+    let (lhs, rhs) = defs.human_eval();
+    println!("{} = {}", lhs, rhs);
 }
