@@ -3,7 +3,9 @@ use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
 use std::ops::{Add, BitOr, Mul, Sub};
 use std::str::FromStr;
-use crate::utils::Error;
+use crate::utils::{Error, Surroundings};
+use crate::utils::num::{Decrement, Increment};
+use crate::utils::vec3::Vec3;
 
 pub struct Vec2<T>(pub T, pub T);
 
@@ -17,6 +19,25 @@ impl<T: Debug> Debug for Vec2<T> {
 impl<T> Vec2<T> {
     pub fn new(x: T, y: T) -> Vec2<T> {
         Vec2(x, y)
+    }
+
+    pub fn map<K, F>(&self, mapper: F) -> Vec2<K>
+    where F: Fn(&T) -> K
+    {
+        let Vec2(x, y) = self;
+        Vec2::new(mapper(x), mapper(y))
+    }
+
+    pub fn transform<K, F>(self, mapper: F) -> Vec2<K>
+        where F: Fn(T) -> K
+    {
+        let Vec2(x, y) = self;
+        Vec2::new(mapper(x), mapper(y))
+    }
+
+    pub fn extend(self, z: T) -> Vec3<T> {
+        let Vec2(x, y) = self;
+        Vec3::new(x, y, z)
     }
 }
 
@@ -69,12 +90,14 @@ impl<T: Ord> Ord for Vec2<T> {
 pub trait Vector2<T> {
     fn get_x(&self) -> &T;
     fn get_y(&self) -> &T;
+}
 
+pub trait Vector2Mut<T> {
     fn set_x(&mut self, x: T);
     fn set_y(&mut self, y: T);
 }
 
-impl<T: Copy> Vector2<T> for Vec2<T> {
+impl<T> Vector2<T> for Vec2<T> {
     fn get_x(&self) -> &T {
         let Vec2(x, _) = self;
         x
@@ -84,7 +107,9 @@ impl<T: Copy> Vector2<T> for Vec2<T> {
         let Vec2(_, y) = self;
         y
     }
+}
 
+impl<T: Copy> Vector2Mut<T> for Vec2<T> {
     fn set_x(&mut self, x: T) {
         let Vec2(_, y) = self;
         *self = Vec2(x, *y)
@@ -185,5 +210,17 @@ impl<T: Hash> Hash for Vec2<T> {
         let Vec2(x, y) = self;
         x.hash(state);
         y.hash(state);
+    }
+}
+
+impl<T: Copy + Increment<Output=T> + Decrement<Output=T> + ?Sized> Surroundings<4> for Vec2<T> {
+    fn get_surroundings(&self) -> [Self; 4] where Self: Sized {
+        let Vec2(x, y) = self;
+        [
+            Vec2(x.dec(), *y),
+            Vec2(x.inc(), *y),
+            Vec2(*x, y.dec()),
+            Vec2(*x, y.inc()),
+        ]
     }
 }

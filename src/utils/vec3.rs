@@ -20,6 +20,20 @@ impl<T> Vec3<T> {
     pub fn new(x: T, y: T, z: T) -> Vec3<T> {
         Vec3(x, y, z)
     }
+
+    pub fn map<K, F>(&self, mapper: F) -> Vec3<K>
+        where F: Fn(&T) -> K
+    {
+        let Vec3(x, y,z ) = self;
+        Vec3::new(mapper(x), mapper(y), mapper(z))
+    }
+
+    pub fn transform<K, F>(self, mapper: F) -> Vec3<K>
+        where F: Fn(T) -> K
+    {
+        let Vec3(x, y,z ) = self;
+        Vec3::new(mapper(x), mapper(y), mapper(z))
+    }
 }
 
 impl<T: Default> Default for Vec3<T> {
@@ -87,12 +101,27 @@ pub trait Vector3<T> {
     fn get_y(&self) -> &T;
     fn get_z(&self) -> &T;
 
+    fn forget_x(&self) -> Vec2<&T> {
+        Vec2::new(self.get_y(), self.get_z())
+    }
+
+    fn forget_y(&self) -> Vec2<&T> {
+        Vec2::new(self.get_x(), self.get_z())
+    }
+
+    fn forget_z(&self) -> Vec2<&T> {
+        Vec2::new(self.get_x(), self.get_y())
+    }
+}
+
+pub trait Vector3Mut<T> {
+
     fn set_x(&mut self, x: T);
     fn set_y(&mut self, y: T);
     fn set_z(&mut self, z: T);
 }
 
-impl<T: Copy> Vector3<T> for Vec3<T> {
+impl<T> Vector3<T> for Vec3<T> {
     fn get_x(&self) -> &T {
         let Vec3(x, _, _) = self;
         x
@@ -107,6 +136,9 @@ impl<T: Copy> Vector3<T> for Vec3<T> {
         let Vec3(_, _, z) = self;
         z
     }
+}
+
+impl<T: Copy> Vector3Mut<T> for Vec3<T> {
 
     fn set_x(&mut self, x: T) {
         let Vec3(_, y, z) = self;
@@ -181,20 +213,16 @@ impl<T: Hash> Hash for Vec3<T> {
     }
 }
 
-impl<T: Copy + Increment<Output=T> + Decrement<Output=T>> Surroundings for Vec3<T> {
-    fn get_surroundings(&self) -> Vec<Self> where Self: Sized {
+impl<T: Copy + Increment<Output=T> + Decrement<Output=T> + ?Sized> Surroundings<6> for Vec3<T> {
+    fn get_surroundings(&self) -> [Self; 6] where Self: Sized {
         let Vec3(x, y, z) = self;
-        let mut surroundings = Vec::new();
-
-        surroundings.push(Vec3(x.dec(), *y, *z));
-        surroundings.push(Vec3(x.inc(), *y, *z));
-
-        surroundings.push(Vec3(*x, y.dec(), *z));
-        surroundings.push(Vec3(*x, y.inc(), *z));
-
-        surroundings.push(Vec3(*x, *y, z.dec()));
-        surroundings.push(Vec3(*x, *y, z.inc()));
-
-        surroundings
+        [
+            Vec3(x.dec(), *y, *z),
+            Vec3(x.inc(), *y, *z),
+            Vec3(*x, y.dec(), *z),
+            Vec3(*x, y.inc(), *z),
+            Vec3(*x, *y, z.dec()),
+            Vec3(*x, *y, z.inc()),
+        ]
     }
 }

@@ -399,6 +399,19 @@ fn day18_main() {
     let droplet: Droplet = input_data.parse().unwrap();
 
     println!("surface area: {}", droplet.calc_surface_area());
+
+    let filled_droplet = droplet.filled_droplet();
+    let (minz, maxz) = filled_droplet.min_max_z();
+
+    for i in *minz..=*maxz {
+        let filled_slice = filled_droplet.slice_z(i);
+        let slice = droplet.slice_z(i);
+        println!("slice: {}", i);
+        println!("{}", slice);
+        println!("{}", filled_slice);
+    }
+
+    println!("outer surface area: {}", droplet.calc_outer_surface_area());
 }
 
 fn day20_main() {

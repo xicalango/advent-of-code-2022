@@ -7,6 +7,7 @@ pub mod num;
 pub mod vec3;
 pub mod bv;
 pub mod ringbuf;
+pub mod minmax;
 
 #[derive(Debug)]
 pub struct Error(pub String);
@@ -27,6 +28,6 @@ impl From<ParseIntError> for Error {
     }
 }
 
-pub trait Surroundings {
-    fn get_surroundings(&self) -> Vec<Self> where Self: Sized;
+pub trait Surroundings<const N: usize> {
+    fn get_surroundings(&self) -> [Self; N] where Self: Sized;
 }
