@@ -283,7 +283,7 @@ pub fn solve(v1: &Value, v2: i64) {
     }
     
     
-    println!("{:?} = {:?}", v1, v2);
+    println!("{:?} = {:?}", cur_v1, cur_v2);
 }
 
 #[cfg(test)]
