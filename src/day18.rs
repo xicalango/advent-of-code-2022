@@ -215,7 +215,6 @@ mod test {
         println!("hollow");
         for i in 1..=6 {
             let mut slice = droplet.slice_z(i);
-            slice.bfs_ish();
             slice.set_top_left(Vec2(1, 1));
             slice.set_bottom_right(Vec2(3, 3));
             println!("{}", slice);
