@@ -271,10 +271,10 @@ pub fn solve(v1: &Value, v2: i64) {
     
     while let Value::XOp(op1, op, op2) = cur_v1 {
         let inv_op = op.invert();
-        if let Value::Value(v) = op1 {
+        if let Value::Value(v) = *op1 {
             cur_v1 = op2;
             cur_v2 = inv_op.eval(cur_v2, v);
-        } else if let Value::Value(v) = op2 {
+        } else if let Value::Value(v) = *op2 {
             cur_v1 = op1;
             cur_v2 = inv_op.eval(cur_v2, v);
         } else {
@@ -313,7 +313,7 @@ mod test {
         println!("{}", lhs);
         println!("{}", rhs);
         if let Value::Value(v) = rhs {
-            solve(&lhs, rhs);
+            solve(&lhs, v);
         }
     }
 }
