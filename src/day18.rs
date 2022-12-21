@@ -137,33 +137,13 @@ impl DropletSlice {
         let mut filled_positions: HashSet<Vec2<Pos>> = HashSet::new();
 
         for y in *min_y..=*max_y {
-            let mut start_x: Option<Pos> = None;
-            let mut end_x: Option<Pos> = None;
-
             for x in *min_x..=*max_x {
                 let pos = Vec2::new(x, y);
                 if self.positions.contains(&pos) {
-                    start_x.replace(x);
-                    break;
+                    filled_positions.insert(pos);
+                } else {
+                    // pos.get_surroundings().into_iter().all(|p| self.positions.contains(&p))
                 }
-            }
-
-            for x in (*min_x..=*max_x).rev() {
-                let pos = Vec2::new(x, y);
-                if self.positions.contains(&pos) {
-                    end_x.replace(x);
-                    break;
-                }
-            }
-
-            if let (Some(sx), Some(ex)) = (start_x, end_x) {
-                for x in sx..=ex {
-                    filled_positions.insert(Vec2::new(x, y));
-                }
-            } else if let (None, None) = (start_x, end_x) {
-                // continue
-            } else {
-                panic!("??? {:?}/{:?}", start_x, end_x);
             }
         }
 

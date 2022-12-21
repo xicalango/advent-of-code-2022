@@ -1,8 +1,9 @@
-use std::collections::{HashSet, VecDeque};
+
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use crate::Error;
+use crate::utils::bfs::{Bfs, Graph};
 
 type Vec2 = (u8, u8);
 
@@ -13,14 +14,6 @@ pub struct HeightMap {
     height: u8,
     start_pos: Vec2,
     end_pos: Vec2,
-}
-
-pub struct Bfs<'a, F>
-    where F: Fn(&u8, &u8) -> bool
-{
-    height_map: &'a HeightMap,
-    filter: F,
-    start_pos: &'a Vec2,
 }
 
 fn parse_height(c: &char) -> u8 {
@@ -100,12 +93,8 @@ impl Display for HeightMap {
 }
 
 impl HeightMap {
-    pub fn filtered_bfs<'a, F: Fn(&u8, &u8) -> bool>(&'a self, start_pos: &'a Vec2, filter: F) -> Bfs<F> {
-        Bfs {
-            height_map: self,
-            filter,
-            start_pos
-        }
+    pub fn filtered_bfs<F: Fn(&u8, &u8) -> bool>(&self, filter: F) -> Bfs<F, HeightMap> {
+        Bfs::new(self, filter)
     }
 
     pub fn surroundings(&self, pos: &Vec2) -> Vec<Vec2> {
@@ -159,53 +148,16 @@ impl HeightMap {
     }
 }
 
-impl<'a, F> Bfs<'a, F>
-    where F: Fn(&u8, &u8) -> bool
-{
-    pub fn run(self) -> Vec<Vec<u32>> {
-        let mut frontier: VecDeque<(Vec2, u32)> = VecDeque::new();
-        frontier.push_back((self.start_pos.clone(), 0));
+impl Graph for HeightMap {
+    type Position = Vec2;
+    type Property = u8;
 
-        let mut visited: HashSet<Vec2> = HashSet::new();
+    fn get_property(&self, pos: &Self::Position) -> &Self::Property {
+        self.get_at(pos)
+    }
 
-        let mut dists: Vec<Vec<u32>> = self.height_map.map.iter().map(|v| v.iter().map(|_| 0 as u32).collect()).collect();
-
-        while let Some((cur, dist)) = frontier.pop_front() {
-
-            if visited.contains(&cur) {
-                continue;
-            }
-
-            let (cx, cy) = &cur;
-            visited.insert(cur.clone());
-            dists[*cy as usize][*cx as usize] = dist;
-
-            let surroundings = self.height_map.surroundings(&cur);
-
-            for next in surroundings {
-                if visited.contains(&next) {
-                    continue;
-                }
-
-                let cur_height = self.height_map.get_at(&cur);
-                let next_height = self.height_map.get_at(&next);
-
-                if !(self.filter)(cur_height, next_height) {
-                    continue;
-                }
-
-                frontier.push_back((next, dist+1));
-            }
-
-            /*
-            println!("bfs done for {:?}", cur);
-            println!("frontier: {:?}", frontier);
-            println!("visited: {:?}", visited);
-            println!();
-            */
-        }
-
-        dists
+    fn get_surroundings(&self, pos: &Self::Position) -> Vec<Self::Position> {
+        self.surroundings(pos)
     }
 }
 
@@ -230,19 +182,19 @@ mod test {
     fn test_bfs() {
         let hm: HeightMap = EXAMPLE.parse().unwrap();
 
-        let bfs = hm.filtered_bfs(&hm.start_pos, can_climb);
-        let dists = bfs.run();
+        let bfs = hm.filtered_bfs(can_climb);
+        let dists = bfs.run(&hm.start_pos);
 
-        for row in dists.iter() {
-            for h in row {
-                print!("{:02}  ", h);
+        for row in 0..hm.height {
+            for h in 0..hm.width {
+                print!("{:02}  ", dists[&(h, row)]);
             }
             println!();
         }
 
         let (ex, ey) = &hm.end_pos;
 
-        let steps = dists[*ey as usize][*ex as usize];
+        let steps = dists[&(*ex, *ey)];
         println!("{}", steps);
         assert_eq!(31, steps);
     }
@@ -252,10 +204,10 @@ mod test {
         let hm: HeightMap = EXAMPLE.parse().unwrap();
         let end_pos = &hm.get_end_pos();
         
-        let bfs = hm.filtered_bfs(&end_pos, |c, n| *c <= *n || *c == n+1);
-        let dists = bfs.run();
+        let bfs = hm.filtered_bfs(|c, n| *c <= *n || *c == n+1);
+        let dists = bfs.run(&end_pos);
         
-        let lowest = hm.get_lowest_positions().iter().map(|(lx, ly)| dists[*ly as usize][*lx as usize]).filter(|v| v > &0).min().unwrap();
+        let lowest = *hm.get_lowest_positions().iter().filter_map(|(lx, ly)| dists.get(&(*lx, *ly))).min().unwrap();
 
         println!("{}", lowest);
         assert_eq!(29, lowest);

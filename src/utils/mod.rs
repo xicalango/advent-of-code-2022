@@ -8,6 +8,7 @@ pub mod vec3;
 pub mod bv;
 pub mod ringbuf;
 pub mod minmax;
+pub mod bfs;
 
 #[derive(Debug)]
 pub struct Error(pub String);

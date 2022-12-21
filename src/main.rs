@@ -260,8 +260,8 @@ fn day12_main() {
 
     let height_map: HeightMap = input_data.parse().unwrap();
 
-    let bfs = height_map.filtered_bfs(height_map.get_start_pos(), can_climb);
-    let dists = bfs.run();
+    let bfs = height_map.filtered_bfs(can_climb);
+    let dists = bfs.run(height_map.get_start_pos());
 
     /*
     for row in dists.iter() {
@@ -274,16 +274,16 @@ fn day12_main() {
 
     let (ex, ey) = &height_map.get_end_pos();
 
-    println!("{}", dists[*ey as usize][*ex as usize]);
+    println!("{}", dists[&(*ex, *ey)]);
 
 
     {
         let end_pos = &height_map.get_end_pos();
 
-        let bfs = height_map.filtered_bfs(&end_pos, |c, n| *c <= *n || *c == n+1);
-        let dists = bfs.run();
+        let bfs = height_map.filtered_bfs(|c, n| *c <= *n || *c == n+1);
+        let dists = bfs.run(&end_pos);
 
-        let lowest = height_map.get_lowest_positions().iter().map(|(lx, ly)| dists[*ly as usize][*lx as usize]).filter(|v| v > &0).min().unwrap();
+        let lowest = height_map.get_lowest_positions().iter().filter_map(|(lx, ly)| dists.get(&(*lx, *ly))).min().unwrap();
 
         println!("{}", lowest);
     }
