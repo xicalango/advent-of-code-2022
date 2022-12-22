@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::mem::replace;
+use std::num::ParseIntError;
 use std::ops::RangeInclusive;
 use std::str::FromStr;
 use crate::{Error, Scored};
@@ -33,6 +34,7 @@ pub struct Map {
     bounding_box: BoundingBox<Pos>,
     row_ranges: HashMap<Pos, RangeInclusive<Pos>>,
     col_ranges: HashMap<Pos, RangeInclusive<Pos>>,
+    regions: Option<HashMap<usize, Region>>,
 }
 
 impl Map {
@@ -43,6 +45,57 @@ impl Map {
             .map(|b| PosVec2::new(b, top_row_idx))
             .find(|p| self.map.get(p) == Some(&Tile::Floor))
             .expect("no starting position found")
+    }
+
+    pub fn set_regions(&mut self, regions: Option<HashMap<usize, Region>>) {
+        self.regions = regions;
+    }
+
+    pub fn wrap_no_region(&self, dir: &Direction, new_pos: &mut PosVec2) {
+        match dir {
+            Direction::Right => {
+                let row_range = &self.row_ranges[new_pos.get_y()];
+                new_pos.set_x(*row_range.start());
+            }
+            Direction::Up => {
+                let col_range = &self.col_ranges[new_pos.get_x()];
+                new_pos.set_y(*col_range.end());
+            }
+            Direction::Left => {
+                let row_range = &self.row_ranges[new_pos.get_y()];
+                new_pos.set_x(*row_range.end());
+            }
+            Direction::Down => {
+                let col_range = &self.col_ranges[new_pos.get_x()];
+                new_pos.set_y(*col_range.start());
+            }
+        }
+    }
+
+    pub fn wrap_region(&self, old_pos: &PosVec2, dir: &Direction, new_pos: &mut PosVec2) {
+        assert!(self.regions.is_some());
+
+        let regions = self.regions.as_ref().unwrap();
+
+
+        match dir {
+            Direction::Right => {
+                let row_range = &self.row_ranges[new_pos.get_y()];
+                new_pos.set_x(*row_range.start());
+            }
+            Direction::Up => {
+                let col_range = &self.col_ranges[new_pos.get_x()];
+                new_pos.set_y(*col_range.end());
+            }
+            Direction::Left => {
+                let row_range = &self.row_ranges[new_pos.get_y()];
+                new_pos.set_x(*row_range.end());
+            }
+            Direction::Down => {
+                let col_range = &self.col_ranges[new_pos.get_x()];
+                new_pos.set_y(*col_range.start());
+            }
+        }
     }
 }
 
@@ -75,6 +128,7 @@ impl From<HashMap<PosVec2, Tile>> for Map {
             bounding_box,
             row_ranges,
             col_ranges,
+            regions: None,
         }
     }
 }
@@ -229,6 +283,42 @@ impl Scored for Turtle<'_, Map> {
         (1000 * self.turtle_pos().get_y()) as u64
             + (4 * self.turtle_pos().get_x()) as u64
             + self.turtle_dir().get_score()
+    }
+}
+
+pub struct Region {
+    id: usize,
+    bounding_box: BoundingBox<Pos>,
+    region_mapping: [usize; 4],
+}
+
+impl FromStr for Region {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (id, rest) = s.split_once(":").ok_or(Error::cannot_parse(s))?;
+        let (bb, mapping) = rest.split_once(";").ok_or(Error::cannot_parse(rest))?;
+        let (start, end) = bb.split_once("-").ok_or(Error::cannot_parse(bb))?;
+
+        let id: usize = id.parse()?;
+        let start: PosVec2 = start.parse()?;
+        let end: PosVec2 = end.parse()?;
+
+        let mapping: Result<Vec<usize>, ParseIntError> =  mapping.chars().map(|c| c.to_string().parse::<usize>()).collect();
+        let mapping = mapping?;
+
+        let region_mapping = [
+            mapping[0],
+            mapping[1],
+            mapping[2],
+            mapping[3]
+        ];
+
+        Ok(Region {
+            id,
+            bounding_box: BoundingBox::new(start, end),
+            region_mapping,
+        })
     }
 }
 

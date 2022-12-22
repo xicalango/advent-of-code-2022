@@ -230,6 +230,15 @@ pub struct BoundingBox<T> {
     bottom_right: Vec2<T>,
 }
 
+impl<T> BoundingBox<T> {
+    pub fn new(top_left: Vec2<T>, bottom_right: Vec2<T>) -> BoundingBox<T> {
+        BoundingBox {
+            top_left,
+            bottom_right,
+        }
+    }
+}
+
 impl<'a, E: PartialOrd> FromIterator<&'a Vec2<E>> for BoundingBox<&'a E> {
     fn from_iter<T: IntoIterator<Item=&'a Vec2<E>>>(iter: T) -> Self {
         let mut iter = iter.into_iter();
@@ -312,6 +321,14 @@ impl<T: Copy> BoundingBox<T> {
 
     pub fn x_range(&self) -> RangeInclusive<T> {
         *self.top_left.get_x()..=*self.bottom_right.get_x()
+    }
+
+}
+
+impl<T: PartialOrd> BoundingBox<T> {
+
+    pub fn contains(&self, v: &Vec2<T>) {
+
     }
 
 }
