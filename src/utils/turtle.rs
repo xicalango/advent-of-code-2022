@@ -1,5 +1,7 @@
 use std::fmt::{Debug, Formatter};
 use std::hash::Hash;
+use std::str::FromStr;
+use crate::utils::Error;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Direction {
@@ -13,6 +15,18 @@ pub enum Direction {
 pub enum Turn {
     Left,
     Right,
+}
+
+impl FromStr for Turn {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "L" => Ok(Turn::Left),
+            "R" => Ok(Turn::Right),
+            _ => Err(Error::cannot_parse(s)),
+        }
+    }
 }
 
 impl Direction {

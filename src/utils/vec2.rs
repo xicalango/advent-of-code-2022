@@ -1,9 +1,11 @@
+use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
-use std::ops::{Add, BitOr, Mul, Sub};
+use std::ops::{Add, BitOr, Mul, Range, RangeInclusive, Sub};
 use std::str::FromStr;
 use crate::utils::{Error, Surroundings};
+use crate::utils::minmax::MinMax;
 use crate::utils::num::{Decrement, Increment};
 use crate::utils::vec3::Vec3;
 
@@ -223,4 +225,95 @@ impl<T: Copy + Increment<Output=T> + Decrement<Output=T> + ?Sized> Surroundings<
             Vec2(*x, y.inc()),
         ]
     }
+}
+
+pub struct BoundingBox<T> {
+    top_left: Vec2<T>,
+    bottom_right: Vec2<T>,
+}
+
+impl<'a, E: PartialOrd> FromIterator<&'a Vec2<E>> for BoundingBox<&'a E> {
+    fn from_iter<T: IntoIterator<Item=&'a Vec2<E>>>(iter: T) -> Self {
+        let mut iter = iter.into_iter();
+        let first_item = iter.next();
+        let first_item = first_item.expect("can only compute bounding box for non empty iterators");
+
+        let mut min_x = first_item.get_x();
+        let mut max_x = min_x;
+
+        let mut min_y = first_item.get_y();
+        let mut max_y = min_y;
+
+        for item in iter {
+            let x = item.get_x();
+            let y = item.get_y();
+
+            if x < min_x {
+                min_x = x;
+            }
+            if x > max_x {
+                max_x = x;
+            }
+            if y < min_y {
+                min_y = y;
+            }
+            if y > max_y {
+                max_y = y;
+            }
+        }
+
+        BoundingBox {
+            top_left: Vec2(min_x, min_y),
+            bottom_right: Vec2(max_x, max_y),
+        }
+    }
+}
+
+impl<T> BoundingBox<T> {
+
+    pub fn top_left(&self) -> &Vec2<T> {
+        &self.top_left
+    }
+
+    pub fn bottom_right(&self) -> &Vec2<T> {
+        &self.bottom_right
+    }
+
+    pub fn top_right(&self) -> Vec2<&T> {
+        Vec2(self.bottom_right.get_x(), self.top_left.get_y())
+    }
+
+    pub fn bottom_left(&self) -> Vec2<&T> {
+        Vec2(self.top_left.get_x(), self.bottom_right.get_y())
+    }
+
+    pub fn map<K, F>(self, mapper: F) -> BoundingBox<K>
+        where F: Fn(T) -> K {
+
+        let Vec2(min_x, min_y) = self.top_left;
+        let Vec2(max_x, max_y) = self.bottom_right;
+
+        BoundingBox {
+            top_left: Vec2(mapper(min_x), mapper(min_y)),
+            bottom_right: Vec2(mapper(max_x), mapper(max_y))
+        }
+    }
+}
+
+impl<T: Debug> Debug for BoundingBox<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "BoundingBox({:?}, {:?})", self.top_left, self.bottom_right)
+    }
+}
+
+impl<T: Copy> BoundingBox<T> {
+
+    pub fn y_range(&self) -> RangeInclusive<T> {
+        *self.top_left.get_y()..=*self.bottom_right.get_y()
+    }
+
+    pub fn x_range(&self) -> RangeInclusive<T> {
+        *self.top_left.get_x()..=*self.bottom_right.get_x()
+    }
+
 }
