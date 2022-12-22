@@ -9,6 +9,7 @@ pub mod bv;
 pub mod ringbuf;
 pub mod minmax;
 pub mod bfs;
+pub mod turtle;
 
 #[derive(Debug)]
 pub struct Error(pub String);
