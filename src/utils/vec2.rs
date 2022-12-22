@@ -327,8 +327,15 @@ impl<T: Copy> BoundingBox<T> {
 
 impl<T: PartialOrd> BoundingBox<T> {
 
-    pub fn contains(&self, v: &Vec2<T>) {
+    pub fn contains(&self, v: &Vec2<T>) -> bool {
+        let Vec2(x, y) = v;
+        let Vec2(min_x, min_y) = &self.top_left;
+        let Vec2(max_x, max_y) = &self.bottom_right;
 
+        x >= min_x &&
+            x <= max_x &&
+            y >= min_y &&
+            y <= max_y
     }
 
 }

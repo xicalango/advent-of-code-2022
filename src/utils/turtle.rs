@@ -11,6 +11,20 @@ pub enum Direction {
     Down,
 }
 
+impl FromStr for Direction {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_uppercase().as_str() {
+            "R" => Ok(Direction::Right),
+            "U" => Ok(Direction::Up),
+            "L" => Ok(Direction::Left),
+            "D" => Ok(Direction::Down),
+            o => Err(Error::cannot_parse(o)),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum Turn {
     Left,
@@ -229,7 +243,8 @@ mod test {
         turtle.turn(Turn::Left);
 
         println!("turtle pos: {:?}", turtle.turtle_pos());
-        turtle.n_step(10).unwrap();
+        let result = turtle.n_step(10);
+        assert!(result.is_err());
 
         println!("turtle pos: {:?}", turtle.turtle_pos());
 

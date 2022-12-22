@@ -34,7 +34,7 @@ pub struct Map {
     bounding_box: BoundingBox<Pos>,
     row_ranges: HashMap<Pos, RangeInclusive<Pos>>,
     col_ranges: HashMap<Pos, RangeInclusive<Pos>>,
-    regions: Option<HashMap<usize, Region>>,
+    regions: Option<Vec<Region>>,
 }
 
 impl Map {
@@ -47,7 +47,7 @@ impl Map {
             .expect("no starting position found")
     }
 
-    pub fn set_regions(&mut self, regions: Option<HashMap<usize, Region>>) {
+    pub fn set_regions(&mut self, regions: Option<Vec<Region>>) {
         self.regions = regions;
     }
 
@@ -77,24 +77,27 @@ impl Map {
 
         let regions = self.regions.as_ref().unwrap();
 
+        let source_region = regions.iter().find(|r| r.bounding_box.contains(old_pos))
+            .expect(&format!("no region contains {:?}", old_pos));
 
-        match dir {
-            Direction::Right => {
-                let row_range = &self.row_ranges[new_pos.get_y()];
-                new_pos.set_x(*row_range.start());
-            }
-            Direction::Up => {
-                let col_range = &self.col_ranges[new_pos.get_x()];
-                new_pos.set_y(*col_range.end());
-            }
-            Direction::Left => {
-                let row_range = &self.row_ranges[new_pos.get_y()];
-                new_pos.set_x(*row_range.end());
-            }
-            Direction::Down => {
-                let col_range = &self.col_ranges[new_pos.get_x()];
-                new_pos.set_y(*col_range.start());
-            }
+        let lookup = match dir {
+            Direction::Right => 0,
+            Direction::Up => 1,
+            Direction::Left => 2,
+            Direction::Down => 3,
+        };
+
+        let new_region = source_region.region_mapping[lookup];
+        let dir_in_new_region = source_region.direction_mapping[lookup];
+
+        let new_region = regions.iter().find(|r| r.id == new_region)
+            .expect(&format!("invalid region: {:?}", new_region));
+
+        match dir_in_new_region {
+            Direction::Right => {}
+            Direction::Up => {}
+            Direction::Left => {}
+            Direction::Down => {}
         }
     }
 }
@@ -286,10 +289,12 @@ impl Scored for Turtle<'_, Map> {
     }
 }
 
+#[derive(Debug)]
 pub struct Region {
     id: usize,
     bounding_box: BoundingBox<Pos>,
     region_mapping: [usize; 4],
+    direction_mapping: [Direction; 4],
 }
 
 impl FromStr for Region {
@@ -299,25 +304,39 @@ impl FromStr for Region {
         let (id, rest) = s.split_once(":").ok_or(Error::cannot_parse(s))?;
         let (bb, mapping) = rest.split_once(";").ok_or(Error::cannot_parse(rest))?;
         let (start, end) = bb.split_once("-").ok_or(Error::cannot_parse(bb))?;
+        let (region_mapping, direction_mapping) = mapping.split_once("-").ok_or(Error::cannot_parse(mapping))?;
 
         let id: usize = id.parse()?;
         let start: PosVec2 = start.parse()?;
         let end: PosVec2 = end.parse()?;
 
-        let mapping: Result<Vec<usize>, ParseIntError> =  mapping.chars().map(|c| c.to_string().parse::<usize>()).collect();
-        let mapping = mapping?;
+
+
+        let region_mapping: Result<Vec<usize>, ParseIntError> =  region_mapping.chars().map(|c| c.to_string().parse::<usize>()).collect();
+        let region_mapping = region_mapping?;
 
         let region_mapping = [
-            mapping[0],
-            mapping[1],
-            mapping[2],
-            mapping[3]
+            region_mapping[0],
+            region_mapping[1],
+            region_mapping[2],
+            region_mapping[3]
+        ];
+
+        let direction_mapping: Result<Vec<Direction>, Error> = direction_mapping.chars().map(|c| c.to_string().parse::<Direction>()).collect();
+        let direction_mapping = direction_mapping?;
+
+        let direction_mapping = [
+            direction_mapping[0],
+            direction_mapping[1],
+            direction_mapping[2],
+            direction_mapping[3],
         ];
 
         Ok(Region {
             id,
             bounding_box: BoundingBox::new(start, end),
             region_mapping,
+            direction_mapping,
         })
     }
 }
