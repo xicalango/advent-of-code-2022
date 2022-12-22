@@ -1,11 +1,9 @@
-use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::fmt::{Debug, Formatter};
 use std::hash::{Hash, Hasher};
-use std::ops::{Add, BitOr, Mul, Range, RangeInclusive, Sub};
+use std::ops::{Add, BitOr, Mul, RangeInclusive, Sub};
 use std::str::FromStr;
 use crate::utils::{Error, Surroundings};
-use crate::utils::minmax::MinMax;
 use crate::utils::num::{Decrement, Increment};
 use crate::utils::vec3::Vec3;
 

@@ -1,14 +1,18 @@
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::mem::replace;
+use std::ops::RangeInclusive;
 use std::str::FromStr;
-use crate::Error;
-use crate::utils::turtle::*;
+use crate::{Error, Scored};
+use crate::utils::minmax::MinMax;
+pub use crate::utils::turtle::*;
 use crate::utils::vec2::*;
+
 
 type Pos = isize;
 type PosVec2 = Vec2<Pos>;
 
-#[derive(Debug)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Tile {
     Floor,
     Wall,
@@ -27,15 +31,50 @@ impl Display for Tile {
 pub struct Map {
     map: HashMap<PosVec2, Tile>,
     bounding_box: BoundingBox<Pos>,
+    row_ranges: HashMap<Pos, RangeInclusive<Pos>>,
+    col_ranges: HashMap<Pos, RangeInclusive<Pos>>,
+}
+
+impl Map {
+    pub fn get_starting_position(&self) -> PosVec2 {
+        let top_row_idx = *self.bounding_box.y_range().start();
+        let top_row_bounds = self.row_ranges[&top_row_idx].clone();
+        top_row_bounds
+            .map(|b| PosVec2::new(b, top_row_idx))
+            .find(|p| self.map.get(p) == Some(&Tile::Floor))
+            .expect("no starting position found")
+    }
 }
 
 impl From<HashMap<PosVec2, Tile>> for Map {
     fn from(map: HashMap<PosVec2, Tile>) -> Self {
         let bounding_box: BoundingBox<&Pos> = map.keys().collect();
         let bounding_box = bounding_box.map(|v| *v);
+
+        let mut row_ranges = HashMap::new();
+        let mut col_ranges = HashMap::new();
+
+        for row in bounding_box.y_range() {
+            if let Some((min, max)) = map.keys()
+                .filter(|v| v.get_y() == &row)
+                .map(|v| v.get_x()).min_max() {
+                row_ranges.insert(row, *min..=*max);
+            }
+        }
+
+        for col in bounding_box.x_range() {
+            if let Some((min, max)) = map.keys()
+                .filter(|v| v.get_x() == &col)
+                .map(|v| v.get_y()).min_max() {
+                col_ranges.insert(col, *min..=*max);
+            }
+        }
+
         Map {
             map,
             bounding_box,
+            row_ranges,
+            col_ranges,
         }
     }
 }
@@ -83,9 +122,118 @@ impl Display for Map {
     }
 }
 
-#[cfg(test)]
-mod test{
+#[derive(Debug)]
+pub struct Instructions(pub Vec<Instruction>);
 
+impl Instructions {
+
+    pub fn simulate<W: World>(&self, turtle: &mut Turtle<'_, W>) {
+        let Instructions(instructions) = self;
+        for instruction in instructions {
+            turtle.eval(instruction).ok();
+        }
+    }
+
+}
+
+impl FromStr for Instructions {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut instructions = Vec::new();
+        let mut number_cache = String::new();
+
+        for c in s.chars() {
+            match c {
+                '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => number_cache.push(c),
+                'L' | 'R' => {
+                    if !number_cache.is_empty() {
+                        let number = replace(&mut number_cache, String::new());
+                        let number: usize = number.parse()?;
+                        instructions.push(Instruction::Step(number));
+                        let turn: Turn = c.to_string().parse()?;
+                        instructions.push(Instruction::Turn(turn));
+                    }
+                }
+                _ => {
+                    return Err(Error::cannot_parse(&c));
+                }
+            }
+        }
+        if !number_cache.is_empty() {
+            let number: usize = number_cache.parse()?;
+            instructions.push(Instruction::Step(number));
+        }
+
+        Ok(Instructions(instructions))
+    }
+}
+
+impl Position for PosVec2 {
+    fn get_step_position(&self, dir: &Direction) -> Self {
+        match dir {
+            Direction::Right => PosVec2::new(self.get_x() + 1, *self.get_y()),
+            Direction::Up => PosVec2::new(*self.get_x(), self.get_y() - 1),
+            Direction::Left => PosVec2::new(self.get_x() - 1, *self.get_y()),
+            Direction::Down => PosVec2::new(*self.get_x(), self.get_y() + 1),
+        }
+    }
+}
+
+impl World for Map {
+    type Position = PosVec2;
+
+    fn wrap_position(&self, _: &Self::Position, dir: &Direction, new_pos: &mut Self::Position) {
+        if self.map.contains_key(new_pos) {
+            return;
+        }
+
+        match dir {
+            Direction::Right => {
+                let row_range = &self.row_ranges[new_pos.get_y()];
+                new_pos.set_x(*row_range.start());
+            }
+            Direction::Up => {
+                let col_range = &self.col_ranges[new_pos.get_x()];
+                new_pos.set_y(*col_range.end());
+            }
+            Direction::Left => {
+                let row_range = &self.row_ranges[new_pos.get_y()];
+                new_pos.set_x(*row_range.end());
+            }
+            Direction::Down => {
+                let col_range = &self.col_ranges[new_pos.get_x()];
+                new_pos.set_y(*col_range.start());
+            }
+        }
+    }
+
+    fn is_accessible(&self, pos: &Self::Position) -> bool {
+        self.map.get(pos) != Some(&Tile::Wall)
+    }
+}
+
+impl Scored for Direction {
+    fn get_score(&self) -> u64 {
+        match self {
+            Direction::Right => 0,
+            Direction::Up => 3,
+            Direction::Left => 2,
+            Direction::Down => 1
+        }
+    }
+}
+
+impl Scored for Turtle<'_, Map> {
+    fn get_score(&self) -> u64 {
+        (1000 * self.turtle_pos().get_y()) as u64
+            + (4 * self.turtle_pos().get_x()) as u64
+            + self.turtle_dir().get_score()
+    }
+}
+
+#[cfg(test)]
+mod test {
     use super::*;
 
     static EXAMPLE: &'static str = include_str!("../res/day22-map_example.txt");
@@ -95,5 +243,41 @@ mod test{
         let map: Map = EXAMPLE.parse().unwrap();
 
         println!("{}", map);
+    }
+
+    #[test]
+    fn test_parse_instructions() {
+        let mut lines = EXAMPLE.lines();
+        while let Some(l) = lines.next() {
+            if l.trim().is_empty() {
+                break;
+            }
+        }
+        let instructions = lines.next().unwrap();
+        let instructions: Instructions = instructions.parse().unwrap();
+
+        println!("{:#?}", instructions);
+    }
+
+    #[test]
+    fn test_simulate() {
+        let map: Map = EXAMPLE.parse().unwrap();
+
+        let mut lines = EXAMPLE.lines();
+        while let Some(l) = lines.next() {
+            if l.trim().is_empty() {
+                break;
+            }
+        }
+        let instructions = lines.next().unwrap();
+        let instructions: Instructions = instructions.parse().unwrap();
+
+        let starting_position = map.get_starting_position();
+
+        let mut turtle = Turtle::new(&map, starting_position, Direction::Right);
+
+        instructions.simulate(&mut turtle);
+
+        assert_eq!(6032, turtle.get_score());
     }
 }

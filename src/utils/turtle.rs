@@ -62,6 +62,18 @@ impl Direction {
         *self = dir;
     }
 
+    pub fn get_reverse(&self) -> Direction {
+        match self {
+            Direction::Right => Direction::Left,
+            Direction::Up => Direction::Down,
+            Direction::Left => Direction::Right,
+            Direction::Down => Direction::Up,
+        }
+    }
+
+    pub fn turn_around(&mut self) {
+        *self = self.get_reverse()
+    }
 }
 
 impl Default for Direction {
@@ -81,8 +93,14 @@ pub trait Position: Clone + Eq + Hash {
 pub trait World {
     type Position: Position;
 
-    fn wrap_position(&self, pos: &mut Self::Position);
+    fn wrap_position(&self, old_pos: &Self::Position, dir: &Direction, new_pos: &mut Self::Position);
     fn is_accessible(&self, pos: &Self::Position) -> bool;
+}
+
+#[derive(Debug, Clone)]
+pub enum Instruction {
+    Step(usize),
+    Turn(Turn),
 }
 
 pub struct Turtle<'a, W>
@@ -123,13 +141,13 @@ where W: World {
 
     pub fn step(&mut self) -> Result<(), StepError<W::Position>> {
         let mut new_pos = self.turtle_pos.get_step_position(&self.turtle_direction);
-        self.world.wrap_position(&mut new_pos);
+        self.world.wrap_position(&self.turtle_pos, &self.turtle_direction, &mut new_pos);
 
         if !self.world.is_accessible(&new_pos) {
             return Err(StepError::Inaccessible(new_pos));
         }
 
-        self.turtle_pos.step(&self.turtle_direction);
+        self.turtle_pos = new_pos;
         Ok(())
     }
 
@@ -142,6 +160,13 @@ where W: World {
         Ok(())
     }
 
+    pub fn eval(&mut self, instruction: &Instruction) -> Result<(), StepError<W::Position>> {
+        match instruction {
+            Instruction::Step(n) => self.n_step(*n),
+            Instruction::Turn(turn) => {self.turn(*turn); Ok(())},
+        }
+    }
+
     pub fn turtle_pos(&self) -> &W::Position {
         &self.turtle_pos
     }
@@ -150,6 +175,15 @@ where W: World {
         &self.turtle_direction
     }
 
+}
+
+impl<'a, W> Debug for Turtle<'a, W>
+    where W: World + Debug,
+W::Position: Debug
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Turtle {{ world: {:?}, turtle_pos: {:?}, turtle_dir: {:?} }}", self.world, self.turtle_pos, self.turtle_direction)
+    }
 }
 
 #[cfg(test)]
@@ -174,7 +208,7 @@ mod test {
     impl World for HashSet<Vec2<i32>> {
         type Position = Vec2<i32>;
 
-        fn wrap_position(&self, _: &mut Self::Position) {
+        fn wrap_position(&self, _: &Self::Position, _: &Direction, _: &mut Self::Position) {
         }
 
         fn is_accessible(&self, pos: &Self::Position) -> bool {

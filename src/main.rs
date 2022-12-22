@@ -51,6 +51,7 @@ fn main() {
     bench.run_day(18, day18_main);
     bench.run_day(20, day20_main);
     bench.run_day(21, day21_main);
+    bench.run_day(22, day22_main);
 
     bench.print_times();
     println!();
@@ -463,4 +464,29 @@ fn day21_main() {
         let solution = solve(&lhs, v);
         println!("solution: {}", solution);
     }
+}
+
+fn day22_main() {
+    use day22::*;
+    let input_data = include_str!("../res/day22-map.txt");
+
+    let map: Map = input_data.parse().unwrap();
+
+    let mut lines = input_data.lines();
+    while let Some(l) = lines.next() {
+        if l.trim().is_empty() {
+            break;
+        }
+    }
+    let instructions = lines.next().unwrap();
+    let instructions: Instructions = instructions.parse().unwrap();
+
+    let starting_position = map.get_starting_position();
+
+    let mut turtle = Turtle::new(&map, starting_position, Direction::Right);
+
+    instructions.simulate(&mut turtle);
+
+    println!("{}", turtle.get_score());
+
 }
